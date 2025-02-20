@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Dict, Type
 
 
-@dataclass
 class Event: ...
 
 
