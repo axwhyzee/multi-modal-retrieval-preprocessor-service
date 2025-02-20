@@ -19,7 +19,6 @@ def handle_uploaded_doc(event: DocumentUploaded) -> None:
         obj_path = (
             f'{doc_path.with_suffix("")}__{i}__{obj.obj_type}{obj.file_ext}'
         )
-        print(f"META/{obj_path}")
         repo.store(obj.data, f"META/{obj_path}")
         publisher.publish(
             ObjectPersisted(
