@@ -1,43 +1,34 @@
 from pathlib import Path
-
-import requests
+from typing import Callable, Dict, Type
 
 from adapters.event_publisher import RedisPublisher
 from adapters.repository import ObjectRepository
-from domain.events import DocumentUploaded, ObjectPersisted
-from services.processor import processor_factory
+from domain.events import DocumentUploaded, Event, ObjectPersisted
+from domain.model import document_factory
 
 publisher = RedisPublisher()
 repo = ObjectRepository()
 
 
-def _add_stem_suffix(path: Path, stem_suffix: str) -> Path:
-    return Path(f'{path.with_suffix("")}__{stem_suffix}{path.suffix}')
-
-
 def handle_uploaded_doc(event: DocumentUploaded) -> None:
     doc_path = Path(event.document_path)
-    file_data = requests.get(event.document_path).content
-    processor = processor_factory(file_data, doc_path.suffix)
+    doc_data = repo.get(event.document_path)
+    document = document_factory(doc_data, doc_path.suffix)
 
-    # store doc thumbnail
-    doc_thumbnail_path = _add_stem_suffix(doc_path, "thumbnail")
-    repo.store(processor.generate_thumbnail(), str(doc_thumbnail_path))
-
-    # store doc chunks
-    for chunk_seq, chunk_data in enumerate(processor.split_chunks()):
-        chunk_path = _add_stem_suffix(doc_path, f"chunk__{chunk_seq}")
-        repo.store(chunk_data, str(chunk_path))
-
-        # store chunk thumbnail
-        if processor.has_chunk_thumbnails:
-            chunk_thumbnail_path = _add_stem_suffix(chunk_path, "thumbnail")
-            repo.store(chunk_data, str(chunk_thumbnail_path))
-
+    for i, obj in enumerate(document.generate_objs()):
+        obj_path = (
+            f'{doc_path.with_suffix("")}__{i}__{obj.obj_type}{obj.file_ext}'
+        )
+        print(f"META/{obj_path}")
+        repo.store(obj.data, f"META/{obj_path}")
         publisher.publish(
             ObjectPersisted(
                 document_path=str(doc_path),
-                object_path=str(chunk_path),
-                object_thumbnail_path=str(chunk_thumbnail_path),
+                object_path=str(obj_path),
             )
         )
+
+
+EVENT_HANDLERS: Dict[Type[Event], Callable] = {
+    DocumentUploaded: handle_uploaded_doc,
+}
