@@ -1,9 +1,11 @@
+import json
 from abc import ABC, abstractmethod
+from dataclasses import asdict
 
 import redis
 
 from config import get_redis_connection_params
-from domain.events import Event
+from domain.events import CHANNELS, Event
 
 
 class AbstractPublisher(ABC):
@@ -24,7 +26,9 @@ class RedisPublisher(AbstractPublisher):
         self._client = redis.Redis(**get_redis_connection_params())
 
     def publish(self, event: Event) -> None:
-        self._client.publish(event.channel, event.jsonify())
+        self._client.publish(
+            CHANNELS[event.__class__], json.dumps(asdict(event))
+        )
 
     def __exit__(self, *_):
         self._client.close()
