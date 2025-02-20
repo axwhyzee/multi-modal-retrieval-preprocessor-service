@@ -27,7 +27,7 @@ class ObjectRepository(ABC):
     STORAGE_SERVICE_API_URL = get_storage_service_api_url()
 
     def store(self, obj: bytes, obj_id: str) -> None:
-        logger.info("Storing {obj_id}")
+        logger.info(f"Storing <{obj_id}>")
         r = requests.post(
             urljoin(self.STORAGE_SERVICE_API_URL, "add"),
             data={"doc_id": obj_id},
@@ -37,6 +37,7 @@ class ObjectRepository(ABC):
             raise FailedToStore(f"Failed to store object {obj_id}")
 
     def get(self, obj_id: str) -> bytes:
+        logger.info(f"Fetching <{obj_id}>")
         return requests.get(
-            urljoin(self.STORAGE_SERVICE_API_URL, obj_id.lstrip("/"))
+            urljoin(self.STORAGE_SERVICE_API_URL, f'get/{obj_id.lstrip("/")}')
         ).content
