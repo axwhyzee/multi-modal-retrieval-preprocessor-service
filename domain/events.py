@@ -1,15 +1,9 @@
-import json
-from dataclasses import asdict, dataclass
-from typing import Any, Dict
+from dataclasses import dataclass
+from typing import Dict, Type
 
 
 @dataclass
-class Event:
-    def jsonify(self) -> str:
-        return json.dumps(asdict(self))
-
-    def __post_init__(self):
-        self.channel: str = self.__class__.__name__
+class Event: ...
 
 
 @dataclass
@@ -21,4 +15,16 @@ class DocumentUploaded(Event):
 class ObjectPersisted(Event):
     document_path: str
     object_path: str
-    object_thumbnail_path: str
+
+
+CHANNELS: Dict[Type[Event], str] = {}
+EVENTS: Dict[str, Type[Event]] = {}
+
+
+def _register_event(event: Type[Event]) -> None:
+    CHANNELS[event] = event.__name__
+    EVENTS[event.__name__] = event
+
+
+_register_event(ObjectPersisted)
+_register_event(DocumentUploaded)
