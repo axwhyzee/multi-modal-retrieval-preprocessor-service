@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, Iterator, Type, Union
 
 import cv2
-from event_core.domain.events import ObjectType
+from event_core.domain.types import ObjectType
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from PIL import Image, ImageOps
 from scenedetect import AdaptiveDetector, detect, video_splitter  # type: ignore

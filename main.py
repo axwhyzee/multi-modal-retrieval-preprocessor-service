@@ -1,18 +1,26 @@
 import logging
-from typing import Callable
+from pathlib import Path
 
-from event_core.adapters.pubsub.event_consumer import RedisConsumer
-from event_core.domain.events import Event, ObjectStored
+from event_core.adapters.pubsub import RedisConsumer
+from event_core.adapters.storage import add, get
+from event_core.domain.events import DocStored
 
-from services.handlers import EVENT_HANDLERS
+from domain.model import document_factory
+
+
+def _handle_doc_callback(event: DocStored) -> None:
+    doc_path = Path(event.obj_path)
+    doc_data = get(event.obj_path)
+    document = document_factory(doc_data, doc_path.suffix)
+    for i, obj in enumerate(document.generate_objs()):
+        obj_path = f'{doc_path.with_suffix("")}__{i}__{obj.type}{obj.file_ext}'
+        add(obj.data, f"META/{obj_path}", obj.type)
 
 
 def main():
-    callback: Callable[[Event], None]
-    callback = lambda event: EVENT_HANDLERS[event.__class__](event)
     with RedisConsumer() as consumer:
-        consumer.subscribe(ObjectStored)
-        consumer.listen(callback)
+        consumer.subscribe(DocStored)
+        consumer.listen(_handle_doc_callback)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 from collections import Counter, defaultdict
-from pathlib import Path
 from typing import Dict
 
 import pytest
+from event_core.domain.types import ObjectType
 
-from domain.model import THUMB_EXT, AbstractDoc, FileExt, ObjectType
+from domain.model import THUMB_EXT, AbstractDoc, FileExt
 
 
 def test_text_doc_generates_chunks_without_thumbnail(
