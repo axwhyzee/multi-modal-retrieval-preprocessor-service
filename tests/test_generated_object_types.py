@@ -4,7 +4,7 @@ from typing import Dict
 
 import pytest
 
-from domain.model import THUMB_EXT, AbstractDoc, FileExt, ObjType
+from domain.model import THUMB_EXT, AbstractDoc, FileExt, ObjectType
 
 
 def test_text_doc_generates_chunks_without_thumbnail(
@@ -12,22 +12,22 @@ def test_text_doc_generates_chunks_without_thumbnail(
 ) -> None:
     chunks = list(txt_doc._chunk())
     for obj in chunks:
-        assert obj.obj_type == ObjType.CHUNK
+        assert obj.type == ObjectType.CHUNK
     assert len(chunks) >= 1
 
 
 def test_text_doc_generates_correct_object_types(txt_doc: AbstractDoc) -> None:
-    obj_types: Dict[ObjType, int] = defaultdict(int)
+    obj_types: Dict[ObjectType, int] = defaultdict(int)
 
     for obj in txt_doc.generate_objs():
-        obj_types[obj.obj_type] += 1
+        obj_types[obj.type] += 1
 
     assert set(obj_types.keys()) == {
-        ObjType.CHUNK,
-        ObjType.DOC_THUMB,
+        ObjectType.CHUNK,
+        ObjectType.DOC_THUMBNAIL,
     }
-    assert obj_types[ObjType.CHUNK] >= 1
-    assert obj_types[ObjType.DOC_THUMB] == 1
+    assert obj_types[ObjectType.CHUNK] >= 1
+    assert obj_types[ObjectType.DOC_THUMBNAIL] == 1
 
 
 def test_img_doc_generates_one_chunk_without_thumbnail(
@@ -35,45 +35,45 @@ def test_img_doc_generates_one_chunk_without_thumbnail(
 ) -> None:
     chunks = list(jpg_doc._chunk())
     for obj in chunks:
-        assert obj.obj_type == ObjType.CHUNK
+        assert obj.type == ObjectType.CHUNK
 
     assert len(chunks) == 1
 
 
 def test_img_doc_generates_correct_object_types(jpg_doc: AbstractDoc) -> None:
-    obj_types: Dict[ObjType, int] = defaultdict(int)
+    obj_types: Dict[ObjectType, int] = defaultdict(int)
 
     for obj in jpg_doc.generate_objs():
-        obj_types[obj.obj_type] += 1
+        obj_types[obj.type] += 1
 
     assert set(obj_types.keys()) == {
-        ObjType.CHUNK,
-        ObjType.DOC_THUMB,
+        ObjectType.CHUNK,
+        ObjectType.DOC_THUMBNAIL,
     }
-    assert obj_types[ObjType.CHUNK] == 1
-    assert obj_types[ObjType.DOC_THUMB] == 1
+    assert obj_types[ObjectType.CHUNK] == 1
+    assert obj_types[ObjectType.DOC_THUMBNAIL] == 1
 
 
 def test_vid_doc_generates_chunks_with_thumbnail(mp4_doc: AbstractDoc) -> None:
-    obj_types = Counter([obj.obj_type for obj in mp4_doc._chunk()])
-    assert obj_types[ObjType.CHUNK] == obj_types[ObjType.CHUNK_THUMB]
-    assert obj_types[ObjType.CHUNK] >= 1
+    obj_types = Counter([obj.type for obj in mp4_doc._chunk()])
+    assert obj_types[ObjectType.CHUNK] == obj_types[ObjectType.CHUNK_THUMBNAIL]
+    assert obj_types[ObjectType.CHUNK] >= 1
 
 
 def test_vid_doc_generates_correct_object_types(mp4_doc: AbstractDoc) -> None:
-    obj_types: Dict[ObjType, int] = defaultdict(int)
+    obj_types: Dict[ObjectType, int] = defaultdict(int)
 
     for obj in mp4_doc.generate_objs():
-        obj_types[obj.obj_type] += 1
+        obj_types[obj.type] += 1
 
     assert set(obj_types.keys()) == {
-        ObjType.CHUNK,
-        ObjType.CHUNK_THUMB,
-        ObjType.DOC_THUMB,
+        ObjectType.CHUNK,
+        ObjectType.CHUNK_THUMBNAIL,
+        ObjectType.DOC_THUMBNAIL,
     }
-    assert obj_types[ObjType.CHUNK] == obj_types[ObjType.CHUNK_THUMB]
-    assert obj_types[ObjType.CHUNK] >= 1
-    assert obj_types[ObjType.DOC_THUMB] == 1
+    assert obj_types[ObjectType.CHUNK] == obj_types[ObjectType.CHUNK_THUMBNAIL]
+    assert obj_types[ObjectType.CHUNK] >= 1
+    assert obj_types[ObjectType.DOC_THUMBNAIL] == 1
 
 
 @pytest.mark.parametrize(
@@ -89,7 +89,10 @@ def test_doc_generates_obj_with_correct_file_ext(
 ) -> None:
     doc: AbstractDoc = request.getfixturevalue(fixture_doc)
     for obj in doc.generate_objs():
-        if obj.obj_type == ObjType.CHUNK:
+        if obj.type == ObjectType.CHUNK:
             assert obj.file_ext == chunk_file_ext
-        elif obj.obj_type in (ObjType.CHUNK_THUMB, ObjType.DOC_THUMB):
+        elif obj.type in (
+            ObjectType.CHUNK_THUMBNAIL,
+            ObjectType.DOC_THUMBNAIL,
+        ):
             assert obj.file_ext == THUMB_EXT

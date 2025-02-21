@@ -2,11 +2,13 @@ import subprocess
 import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import StrEnum
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, Iterator, Type, Union
 
 import cv2
+from event_core.domain.events import ObjectType
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from PIL import Image, ImageOps
 from scenedetect import AdaptiveDetector, detect, video_splitter  # type: ignore
@@ -17,7 +19,15 @@ from domain.exceptions import (
     UnrecognizedFileExt,
     VideoSplitterUnavailable,
 )
-from domain.types import FileExt, ObjType
+
+
+class FileExt(StrEnum):
+    PNG = ".png"
+    JPG = ".jpg"
+    JPEG = ".jpeg"
+    MP4 = ".mp4"
+    TXT = ".txt"
+
 
 THUMB_WIDTH = 200
 THUMB_HEIGHT = 300
@@ -27,7 +37,7 @@ THUMB_EXT = FileExt.PNG
 @dataclass
 class RepoObject:
     data: bytes
-    obj_type: ObjType
+    type: ObjectType
     file_ext: FileExt
 
 
@@ -71,7 +81,7 @@ class AbstractDoc(ABC):
     def generate_objs(self) -> Iterator[RepoObject]:
         yield RepoObject(
             data=self._get_thumb(),
-            obj_type=ObjType.DOC_THUMB,
+            type=ObjectType.DOC_THUMBNAIL,
             file_ext=THUMB_EXT,
         )
         yield from self._chunk()
@@ -109,7 +119,7 @@ class TextDoc(AbstractDoc):
         for doc in texts:
             text = doc.page_content.encode("utf-8")
             yield RepoObject(
-                data=text, obj_type=ObjType.CHUNK, file_ext=self._file_ext
+                data=text, type=ObjectType.CHUNK, file_ext=self._file_ext
             )
 
     def _get_thumb(self) -> bytes:
@@ -138,7 +148,7 @@ class ImageDoc(AbstractDoc):
 
     def _chunk(self) -> Iterator[RepoObject]:
         yield RepoObject(
-            data=self._data, obj_type=ObjType.CHUNK, file_ext=self._file_ext
+            data=self._data, type=ObjectType.CHUNK, file_ext=self._file_ext
         )
 
     def _get_thumb(self) -> bytes:
@@ -178,11 +188,11 @@ class VideoDoc(AbstractDoc):
                 frame = _extract_first_frame(str(video_path), THUMB_EXT)
                 frame_thumb = _get_img_thumb(frame)
                 yield RepoObject(
-                    data=frame, obj_type=ObjType.CHUNK, file_ext=THUMB_EXT
+                    data=frame, type=ObjectType.CHUNK, file_ext=THUMB_EXT
                 )
                 yield RepoObject(
                     data=frame_thumb,
-                    obj_type=ObjType.CHUNK_THUMB,
+                    type=ObjectType.CHUNK_THUMBNAIL,
                     file_ext=THUMB_EXT,
                 )
 

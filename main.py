@@ -1,17 +1,18 @@
 import logging
 from typing import Callable
 
-from adapters.pubsub import RedisPubsub
-from domain.events import CHANNELS, DocumentUploaded, Event
+from event_core.adapters.pubsub.event_consumer import RedisConsumer
+from event_core.domain.events import Event, ObjectStored
+
 from services.handlers import EVENT_HANDLERS
 
 
 def main():
     callback: Callable[[Event], None]
     callback = lambda event: EVENT_HANDLERS[event.__class__](event)
-    with RedisPubsub() as pubsub:
-        pubsub.subscribe(CHANNELS[DocumentUploaded])
-        pubsub.listen(callback)
+    with RedisConsumer() as consumer:
+        consumer.subscribe(ObjectStored)
+        consumer.listen(callback)
 
 
 if __name__ == "__main__":
