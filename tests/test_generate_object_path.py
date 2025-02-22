@@ -3,11 +3,11 @@ from pathlib import Path
 import pytest
 
 from domain.model import FileExt, Obj, ObjectType
-from app import _generate_obj_path
+from app import _generate_key
 
 
 @pytest.mark.parametrize(
-    "doc_path,obj,obj_seq,expected",
+    "parent_key,obj,obj_seq,expected",
     (
         (
             Path("test.mp4"),
@@ -63,7 +63,7 @@ from app import _generate_obj_path
         ),
     ),
 )
-def test_generate_obj_path(
-    doc_path: Path, obj: Obj, obj_seq: int, expected: str
+def test_generate_key(
+    parent_key: Path, obj: Obj, obj_seq: int, expected: str
 ) -> None:
-    assert _generate_obj_path(doc_path, obj, obj_seq) == expected
+    assert _generate_key(parent_key, obj, obj_seq) == expected

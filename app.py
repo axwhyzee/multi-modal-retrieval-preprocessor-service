@@ -11,22 +11,22 @@ from domain.model import Obj, document_factory
 mapper = RedisMapper()
 
 
-def _generate_obj_path(doc_path: Path, obj: Obj, obj_seq: int) -> str:
+def _generate_key(parent_key: Path, obj: Obj, obj_seq: int) -> str:
     return str(
-        doc_path.parent
-        / doc_path.stem
+        parent_key.parent
+        / parent_key.stem
         / f"{obj_seq}__{obj.type}{obj.file_ext}"
     )
 
 
 def _handle_doc_callback(event: DocStored) -> None:
-    doc_path = Path(event.obj_path)
-    doc_data = get(event.obj_path)
-    with document_factory(doc_data, doc_path.suffix) as document:
+    parent_key = Path(event.parent_key)
+    data = get(event.key)
+    with document_factory(data, parent_key.suffix) as document:
         for obj_seq, obj in document.generate_objs():
-            obj_path = _generate_obj_path(doc_path, obj, obj_seq)
-            add(obj.data, f"{obj_path}", obj.type)
-            mapper.set(obj_path, str(doc_path))  # obj -> doc (parent)
+            key = _generate_key(parent_key, obj, obj_seq)
+            add(obj.data, key, str(parent_key), obj.type)
+            mapper.set(key, str(parent_key))  # obj -> parent
 
 
 def main():
