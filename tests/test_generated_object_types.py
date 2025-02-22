@@ -11,7 +11,7 @@ def test_text_doc_generates_chunks_without_thumbnail(
     txt_doc: AbstractDoc,
 ) -> None:
     chunks = list(txt_doc._chunk())
-    for obj in chunks:
+    for _, obj in chunks:
         assert obj.type == ObjectType.CHUNK
     assert len(chunks) >= 1
 
@@ -19,7 +19,7 @@ def test_text_doc_generates_chunks_without_thumbnail(
 def test_text_doc_generates_correct_object_types(txt_doc: AbstractDoc) -> None:
     obj_types: Dict[ObjectType, int] = defaultdict(int)
 
-    for obj in txt_doc.generate_objs():
+    for _, obj in txt_doc.generate_objs():
         obj_types[obj.type] += 1
 
     assert set(obj_types.keys()) == {
@@ -34,7 +34,7 @@ def test_img_doc_generates_one_chunk_without_thumbnail(
     jpg_doc: AbstractDoc,
 ) -> None:
     chunks = list(jpg_doc._chunk())
-    for obj in chunks:
+    for _, obj in chunks:
         assert obj.type == ObjectType.CHUNK
 
     assert len(chunks) == 1
@@ -43,7 +43,7 @@ def test_img_doc_generates_one_chunk_without_thumbnail(
 def test_img_doc_generates_correct_object_types(jpg_doc: AbstractDoc) -> None:
     obj_types: Dict[ObjectType, int] = defaultdict(int)
 
-    for obj in jpg_doc.generate_objs():
+    for _, obj in jpg_doc.generate_objs():
         obj_types[obj.type] += 1
 
     assert set(obj_types.keys()) == {
@@ -55,7 +55,7 @@ def test_img_doc_generates_correct_object_types(jpg_doc: AbstractDoc) -> None:
 
 
 def test_vid_doc_generates_chunks_with_thumbnail(mp4_doc: AbstractDoc) -> None:
-    obj_types = Counter([obj.type for obj in mp4_doc._chunk()])
+    obj_types = Counter([obj.type for _, obj in mp4_doc._chunk()])
     assert obj_types[ObjectType.CHUNK] == obj_types[ObjectType.CHUNK_THUMBNAIL]
     assert obj_types[ObjectType.CHUNK] >= 1
 
@@ -63,7 +63,7 @@ def test_vid_doc_generates_chunks_with_thumbnail(mp4_doc: AbstractDoc) -> None:
 def test_vid_doc_generates_correct_object_types(mp4_doc: AbstractDoc) -> None:
     obj_types: Dict[ObjectType, int] = defaultdict(int)
 
-    for obj in mp4_doc.generate_objs():
+    for _, obj in mp4_doc.generate_objs():
         obj_types[obj.type] += 1
 
     assert set(obj_types.keys()) == {
@@ -88,7 +88,7 @@ def test_doc_generates_obj_with_correct_file_ext(
     fixture_doc: str, request: pytest.FixtureRequest, chunk_file_ext: FileExt
 ) -> None:
     doc: AbstractDoc = request.getfixturevalue(fixture_doc)
-    for obj in doc.generate_objs():
+    for _, obj in doc.generate_objs():
         if obj.type == ObjectType.CHUNK:
             assert obj.file_ext == chunk_file_ext
         elif obj.type in (

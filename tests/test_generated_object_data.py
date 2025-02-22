@@ -27,6 +27,6 @@ def test_text_doc_original_text_equals_chunks(
     txt_doc: AbstractDoc, txt_file_path: Path
 ) -> None:
     original = txt_file_path.read_text()
-    text_chunks = [obj.data.decode("utf-8") for obj in txt_doc._chunk()]
+    text_chunks = [obj.data.decode("utf-8") for _, obj in txt_doc._chunk()]
     concat_text = "".join(text_chunks)
     assert _to_alnum(original) == _to_alnum(concat_text)
