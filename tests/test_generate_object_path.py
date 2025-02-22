@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from domain.model import FileExt, Obj, ObjectType
-from main import _generate_obj_path
+from app import _generate_obj_path
 
 
 @pytest.mark.parametrize(
