@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Iterator, Type, Union
+from typing import Dict, Iterator, Tuple, Type, TypeAlias, Union
 
 import cv2
 from event_core.domain.types import ObjectType
@@ -19,6 +19,8 @@ from domain.exceptions import (
     UnrecognizedFileExt,
     VideoSplitterUnavailable,
 )
+
+ObjSeq: TypeAlias = int
 
 
 class FileExt(StrEnum):
@@ -35,7 +37,7 @@ THUMB_EXT = FileExt.PNG
 
 
 @dataclass
-class RepoObject:
+class Obj:
     data: bytes
     type: ObjectType
     file_ext: FileExt
@@ -78,8 +80,8 @@ class AbstractDoc(ABC):
         self._data = data
         self._file_ext = file_ext
 
-    def generate_objs(self) -> Iterator[RepoObject]:
-        yield RepoObject(
+    def generate_objs(self) -> Iterator[Tuple[ObjSeq, Obj]]:
+        yield 0, Obj(
             data=self._get_thumb(),
             type=ObjectType.DOC_THUMBNAIL,
             file_ext=THUMB_EXT,
@@ -87,7 +89,7 @@ class AbstractDoc(ABC):
         yield from self._chunk()
 
     @abstractmethod
-    def _chunk(self) -> Iterator[RepoObject]:
+    def _chunk(self) -> Iterator[Tuple[ObjSeq, Obj]]:
         raise NotImplementedError
 
     @abstractmethod
@@ -109,16 +111,16 @@ class TextDoc(AbstractDoc):
         super().__init__(*args, **kwargs)
         self._text = self._data.decode("utf-8")
 
-    def _chunk(self) -> Iterator[RepoObject]:
+    def _chunk(self) -> Iterator[Tuple[ObjSeq, Obj]]:
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.CHUNK_SIZE,
             chunk_overlap=self.CHUNK_OVERLAP,
             length_function=len,
         )
         texts = splitter.create_documents([self._text])
-        for doc in texts:
+        for i, doc in enumerate(texts, start=1):
             text = doc.page_content.encode("utf-8")
-            yield RepoObject(
+            yield i, Obj(
                 data=text, type=ObjectType.CHUNK, file_ext=self._file_ext
             )
 
@@ -146,8 +148,8 @@ class TextDoc(AbstractDoc):
 
 class ImageDoc(AbstractDoc):
 
-    def _chunk(self) -> Iterator[RepoObject]:
-        yield RepoObject(
+    def _chunk(self) -> Iterator[Tuple[ObjSeq, Obj]]:
+        yield 1, Obj(
             data=self._data, type=ObjectType.CHUNK, file_ext=self._file_ext
         )
 
@@ -166,7 +168,7 @@ class VideoDoc(AbstractDoc):
         with open(self._temp_file_path, "wb") as vid_file:
             vid_file.write(self._data)
 
-    def _chunk(self) -> Iterator[RepoObject]:
+    def _chunk(self) -> Iterator[Tuple[ObjSeq, Obj]]:
         scene_list = detect(self._temp_file_path, AdaptiveDetector())
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -184,13 +186,14 @@ class VideoDoc(AbstractDoc):
                     "`>> brew install ffmpeg` or\n"
                     "`>> brew install mkvtoolnix`"
                 )
-            for video_path in Path(temp_dir).iterdir():
+            video_paths = Path(temp_dir).iterdir()
+            for i, video_path in enumerate(video_paths, start=1):
                 frame = _extract_first_frame(str(video_path), THUMB_EXT)
                 frame_thumb = _get_img_thumb(frame)
-                yield RepoObject(
+                yield i, Obj(
                     data=frame, type=ObjectType.CHUNK, file_ext=THUMB_EXT
                 )
-                yield RepoObject(
+                yield i, Obj(
                     data=frame_thumb,
                     type=ObjectType.CHUNK_THUMBNAIL,
                     file_ext=THUMB_EXT,
