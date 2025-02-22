@@ -25,7 +25,7 @@ def _handle_doc_callback(event: DocStored) -> None:
     with document_factory(doc_data, doc_path.suffix) as document:
         for obj_seq, obj in document.generate_objs():
             obj_path = _generate_obj_path(doc_path, obj, obj_seq)
-            add(obj.data, f"META/{obj_path}", obj.type)
+            add(obj.data, f"{obj_path}", obj.type)
             mapper.set(obj_path, str(doc_path))  # obj -> doc (parent)
 
 
