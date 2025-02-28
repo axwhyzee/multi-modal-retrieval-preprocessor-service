@@ -36,7 +36,7 @@ def _handle_doc_callback(
     mapper: AbstractMapper = Provide[DIContainer.mapper],
 ) -> None:
     key = event.key
-    modal = Path(event.modal)
+    modal = event.modal
     file_ext = _file_ext_from_key(key)
     data = storage_client.get(key)
 

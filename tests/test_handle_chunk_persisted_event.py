@@ -1,24 +1,14 @@
 from pathlib import Path
 from typing import cast
 
-import pytest
 from event_core.adapters.services.mapping import FakeMapper
 from event_core.adapters.services.storage import FakeStorageClient
 from event_core.domain.events import DocStored
 from event_core.domain.types import Modal, ObjectType
 
 from app import _handle_doc_callback
-from bootstrap import MODULES, DIContainer
+from bootstrap import DIContainer
 from domain.model import IMG_EXT
-
-
-@pytest.fixture
-def container() -> DIContainer:
-    container = DIContainer()
-    container.storage_client.override(FakeStorageClient())
-    container.mapper.override(FakeMapper())
-    container.wire(modules=MODULES)
-    return container
 
 
 def test_handle_mp4_doc_stored(
