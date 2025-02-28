@@ -1,14 +1,12 @@
-import subprocess
 import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import StrEnum
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Iterator, Tuple, Type, TypeAlias, Union
+from typing import Dict, Iterator, Type
 
 import cv2
-from event_core.domain.types import ObjectType
+from event_core.domain.types import FileExt, Modal, ObjectType
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from PIL import Image, ImageOps
 from scenedetect import AdaptiveDetector, detect, video_splitter  # type: ignore
@@ -16,34 +14,23 @@ from scenedetect import AdaptiveDetector, detect, video_splitter  # type: ignore
 from domain.exceptions import (
     FrameReadError,
     UnableToOpenVideo,
-    UnrecognizedFileExt,
     VideoSplitterUnavailable,
 )
 
-ObjSeq: TypeAlias = int
-
-
-class FileExt(StrEnum):
-    PNG = ".png"
-    JPG = ".jpg"
-    JPEG = ".jpeg"
-    MP4 = ".mp4"
-    TXT = ".txt"
-
-
 THUMB_WIDTH = 200
 THUMB_HEIGHT = 300
-THUMB_EXT = FileExt.PNG
+IMG_EXT = FileExt.PNG
 
 
 @dataclass
 class Obj:
+    seq: int
     data: bytes
     type: ObjectType
     file_ext: FileExt
 
 
-def _get_img_thumb(data: bytes) -> bytes:
+def _thumb_from_img(data: bytes) -> bytes:
     image = Image.open(BytesIO(data))
     image = ImageOps.fit(
         image,
@@ -52,13 +39,15 @@ def _get_img_thumb(data: bytes) -> bytes:
         bleed=0.0,
         centering=(0.5, 0.5),
     )  # type: ignore
-    image_fmt = THUMB_EXT.lstrip(".").upper()  # .png -> PNG
+    image_fmt = IMG_EXT.lstrip(".").upper()  # .png -> PNG
     thumb = BytesIO()
     image.save(thumb, format=image_fmt)
     return thumb.getvalue()
 
 
-def _extract_first_frame(video_path: str, frame_ext: FileExt) -> bytes:
+def _extract_first_frame(
+    video_path: str, frame_ext: FileExt = IMG_EXT
+) -> bytes:
     cap = cv2.VideoCapture(video_path)
     try:
         if not cap.isOpened():
@@ -80,20 +69,8 @@ class AbstractDoc(ABC):
         self._data = data
         self._file_ext = file_ext
 
-    def generate_objs(self) -> Iterator[Tuple[ObjSeq, Obj]]:
-        yield 0, Obj(
-            data=self._get_thumb(),
-            type=ObjectType.DOC_THUMBNAIL,
-            file_ext=THUMB_EXT,
-        )
-        yield from self._chunk()
-
     @abstractmethod
-    def _chunk(self) -> Iterator[Tuple[ObjSeq, Obj]]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def _get_thumb(self) -> bytes:
+    def generate_objs(self) -> Iterator[Obj]:
         raise NotImplementedError
 
     def __enter__(self):
@@ -103,58 +80,45 @@ class AbstractDoc(ABC):
 
 
 class TextDoc(AbstractDoc):
-    THUMB_MAX_CHARS = 200
-    CHUNK_SIZE = 1000
-    CHUNK_OVERLAP = 50
+    CHUNK_SIZE = 300
+    CHUNK_OVERLAP = 0
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._text = self._data.decode("utf-8")
 
-    def _chunk(self) -> Iterator[Tuple[ObjSeq, Obj]]:
+    def generate_objs(self) -> Iterator[Obj]:
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.CHUNK_SIZE,
             chunk_overlap=self.CHUNK_OVERLAP,
             length_function=len,
+            separators=["\n\n", "\n", ". ", ",", " ", ""],
+            is_separator_regex=False,
+            keep_separator=False,
         )
         texts = splitter.create_documents([self._text])
         for i, doc in enumerate(texts, start=1):
             text = doc.page_content.encode("utf-8")
-            yield i, Obj(
-                data=text, type=ObjectType.CHUNK, file_ext=self._file_ext
+            yield Obj(
+                seq=i, data=text, type=ObjectType.CHUNK, file_ext=FileExt.TXT
             )
-
-    def _get_thumb(self) -> bytes:
-        if len(text := self._text) > self.THUMB_MAX_CHARS:
-            text = text[: self.THUMB_MAX_CHARS] + " ..."
-
-        with tempfile.NamedTemporaryFile(suffix=THUMB_EXT) as temp_file:
-            subprocess.run(
-                [
-                    "magick",
-                    "-size",
-                    f"{THUMB_WIDTH}x{THUMB_HEIGHT}",
-                    "-background",
-                    "white",
-                    "-fill",
-                    "black",
-                    f"caption:{text}",
-                    temp_file.name,
-                ],
-                check=True,
-            )
-            return temp_file.read()
 
 
 class ImageDoc(AbstractDoc):
 
-    def _chunk(self) -> Iterator[Tuple[ObjSeq, Obj]]:
-        yield 1, Obj(
-            data=self._data, type=ObjectType.CHUNK, file_ext=self._file_ext
+    def generate_objs(self) -> Iterator[Obj]:
+        yield Obj(
+            seq=0,
+            data=_thumb_from_img(self._data),
+            type=ObjectType.DOC_THUMBNAIL,
+            file_ext=IMG_EXT,
         )
-
-    def _get_thumb(self) -> bytes:
-        return _get_img_thumb(self._data)
+        yield Obj(
+            seq=1,
+            data=self._data,
+            type=ObjectType.CHUNK,
+            file_ext=self._file_ext,
+        )
 
 
 class VideoDoc(AbstractDoc):
@@ -168,7 +132,16 @@ class VideoDoc(AbstractDoc):
         with open(self._temp_file_path, "wb") as vid_file:
             vid_file.write(self._data)
 
-    def _chunk(self) -> Iterator[Tuple[ObjSeq, Obj]]:
+    def generate_objs(self) -> Iterator[Obj]:
+        yield Obj(
+            seq=0,
+            data=self._get_thumb(),
+            type=ObjectType.DOC_THUMBNAIL,
+            file_ext=IMG_EXT,
+        )
+        yield from self._chunk()
+
+    def _chunk(self) -> Iterator[Obj]:
         scene_list = detect(self._temp_file_path, AdaptiveDetector())
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -188,40 +161,29 @@ class VideoDoc(AbstractDoc):
                 )
             video_paths = Path(temp_dir).iterdir()
             for i, video_path in enumerate(video_paths, start=1):
-                frame = _extract_first_frame(str(video_path), THUMB_EXT)
-                frame_thumb = _get_img_thumb(frame)
-                yield i, Obj(
-                    data=frame, type=ObjectType.CHUNK, file_ext=THUMB_EXT
+                frame = _extract_first_frame(str(video_path), IMG_EXT)
+                frame_thumb = _thumb_from_img(frame)
+                yield Obj(
+                    seq=i, data=frame, type=ObjectType.CHUNK, file_ext=IMG_EXT
                 )
-                yield i, Obj(
+                yield Obj(
+                    seq=i,
                     data=frame_thumb,
                     type=ObjectType.CHUNK_THUMBNAIL,
-                    file_ext=THUMB_EXT,
+                    file_ext=IMG_EXT,
                 )
 
     def _get_thumb(self) -> bytes:
-        frame = _extract_first_frame(self._temp_file_path, THUMB_EXT)
-        frame_thumb = _get_img_thumb(frame)
+        frame = _extract_first_frame(self._temp_file_path)
+        frame_thumb = _thumb_from_img(frame)
         return frame_thumb
 
     def __exit__(self, *_):
         self._temp_file.close()
 
 
-_DOCS: Dict[FileExt, Type[AbstractDoc]] = {
-    FileExt.TXT: TextDoc,
-    FileExt.JPEG: ImageDoc,
-    FileExt.JPG: ImageDoc,
-    FileExt.PNG: ImageDoc,
-    FileExt.MP4: VideoDoc,
+DOC_FACTORY: Dict[Modal, Type[AbstractDoc]] = {
+    Modal.TEXT: TextDoc,
+    Modal.IMAGE: ImageDoc,
+    Modal.VIDEO: VideoDoc,
 }
-
-
-def document_factory(
-    file_data: bytes, file_ext: Union[str, FileExt]
-) -> AbstractDoc:
-    if isinstance(file_ext, str):
-        if file_ext not in FileExt._value2member_map_:
-            raise UnrecognizedFileExt(f"Unrecognized extension <{file_ext}>")
-        file_ext = FileExt(file_ext)
-    return _DOCS[file_ext](file_data, file_ext)

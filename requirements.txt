@@ -3,6 +3,7 @@ anyio==4.8.0
 certifi==2025.1.31
 charset-normalizer==3.4.1
 click==8.1.8
+dependency-injector==4.46.0
 event_core @ git+https://github.com/axwhyzee/multi-modal-retrieval-event-core.git
 h11==0.14.0
 httpcore==1.0.7

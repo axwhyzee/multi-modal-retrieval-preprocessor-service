@@ -1,16 +1,18 @@
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, cast
 
 import pytest
+from event_core.domain.types import MODAL_FACTORY, FileExt
 
-from domain.model import AbstractDoc, document_factory
+from domain.model import DOC_FACTORY, AbstractDoc
 
 TEST_DATA_DIR_PATH = Path("tests/data")
 
 
 def _get_doc(path: Path) -> Iterator[AbstractDoc]:
-    data = path.read_bytes()
-    with document_factory(data, path.suffix) as doc:
+    file_ext = cast(FileExt, FileExt._value2member_map_[path.suffix])
+    modal = MODAL_FACTORY[file_ext]
+    with DOC_FACTORY[modal](data=path.read_bytes(), file_ext=file_ext) as doc:
         yield doc
 
 

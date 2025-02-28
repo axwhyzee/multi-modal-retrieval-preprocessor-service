@@ -1,6 +1,3 @@
-class UnrecognizedFileExt(Exception): ...
-
-
 class VideoSplitterUnavailable(Exception): ...
 
 
