@@ -17,8 +17,10 @@ from domain.exceptions import (
     VideoSplitterUnavailable,
 )
 
-THUMB_WIDTH = 200
-THUMB_HEIGHT = 300
+THUMB_WIDTH = 400
+THUMB_HEIGHT = 600
+IMG_CHUNK_WIDTH = 180
+IMG_CHUNK_HEIGHT = 180
 IMG_EXT = FileExt.PNG
 
 
@@ -30,11 +32,11 @@ class Obj:
     file_ext: FileExt
 
 
-def _thumb_from_img(data: bytes) -> bytes:
+def _crop_img(data: bytes, width: int, height: int) -> bytes:
     image = Image.open(BytesIO(data))
     image = ImageOps.fit(
         image,
-        (THUMB_WIDTH, THUMB_HEIGHT),
+        (width, height),
         method=0,
         bleed=0.0,
         centering=(0.5, 0.5),
@@ -43,6 +45,14 @@ def _thumb_from_img(data: bytes) -> bytes:
     thumb = BytesIO()
     image.save(thumb, format=image_fmt)
     return thumb.getvalue()
+
+
+def _img_downsize(data: bytes) -> bytes:
+    return _crop_img(data, IMG_CHUNK_WIDTH, IMG_CHUNK_HEIGHT)
+
+
+def _img_thumbnail(data: bytes) -> bytes:
+    return _crop_img(data, THUMB_WIDTH, THUMB_HEIGHT)
 
 
 def _extract_first_frame(
@@ -109,13 +119,13 @@ class ImageDoc(AbstractDoc):
     def generate_objs(self) -> Iterator[Obj]:
         yield Obj(
             seq=0,
-            data=_thumb_from_img(self._data),
+            data=_img_thumbnail(self._data),
             type=ObjectType.DOC_THUMBNAIL,
             file_ext=IMG_EXT,
         )
         yield Obj(
             seq=1,
-            data=self._data,
+            data=_img_downsize(self._data),
             type=ObjectType.CHUNK,
             file_ext=self._file_ext,
         )
@@ -162,9 +172,12 @@ class VideoDoc(AbstractDoc):
             video_paths = Path(temp_dir).iterdir()
             for i, video_path in enumerate(video_paths, start=1):
                 frame = _extract_first_frame(str(video_path), IMG_EXT)
-                frame_thumb = _thumb_from_img(frame)
+                frame_thumb = _img_thumbnail(frame)
                 yield Obj(
-                    seq=i, data=frame, type=ObjectType.CHUNK, file_ext=IMG_EXT
+                    seq=i,
+                    data=_img_downsize(frame),
+                    type=ObjectType.CHUNK,
+                    file_ext=IMG_EXT,
                 )
                 yield Obj(
                     seq=i,
@@ -175,7 +188,7 @@ class VideoDoc(AbstractDoc):
 
     def _get_thumb(self) -> bytes:
         frame = _extract_first_frame(self._temp_file_path)
-        frame_thumb = _thumb_from_img(frame)
+        frame_thumb = _img_thumbnail(frame)
         return frame_thumb
 
     def __exit__(self, *_):
