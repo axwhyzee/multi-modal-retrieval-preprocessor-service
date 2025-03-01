@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Iterator, cast
 
 import pytest
-from event_core.adapters.services.mapping import FakeMapper
+from event_core.adapters.services.meta import FakeMetaMapping
 from event_core.adapters.services.storage import FakeStorageClient
 from event_core.domain.types import MODAL_FACTORY, FileExt
 
@@ -14,8 +14,9 @@ TEST_DATA_DIR_PATH = Path("tests/data")
 
 def _get_doc(path: Path) -> Iterator[AbstractDoc]:
     file_ext = cast(FileExt, FileExt._value2member_map_[path.suffix])
+    doc_data = path.read_bytes()
     modal = MODAL_FACTORY[file_ext]
-    with DOC_FACTORY[modal](data=path.read_bytes(), file_ext=file_ext) as doc:
+    with DOC_FACTORY[modal](data=doc_data, file_ext=file_ext) as doc:
         yield doc
 
 
@@ -52,7 +53,7 @@ def txt_doc(txt_file_path: Path) -> Iterator[AbstractDoc]:
 @pytest.fixture
 def container() -> DIContainer:
     container = DIContainer()
-    container.storage_client.override(FakeStorageClient())
-    container.mapper.override(FakeMapper())
+    container.storage.override(FakeStorageClient())
+    container.meta.override(FakeMetaMapping())
     container.wire(modules=MODULES)
     return container

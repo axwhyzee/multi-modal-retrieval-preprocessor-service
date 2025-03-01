@@ -1,5 +1,4 @@
-from collections import Counter, defaultdict
-from typing import Dict
+from collections import Counter
 
 import pytest
 from event_core.domain.types import ObjectType

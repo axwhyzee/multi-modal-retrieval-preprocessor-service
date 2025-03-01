@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import cast
 
-from event_core.adapters.services.mapping import FakeMapper
-from event_core.adapters.services.storage import FakeStorageClient
+from event_core.adapters.services.meta import FakeMetaMapping, Meta
+from event_core.adapters.services.storage import FakeStorageClient, Payload
 from event_core.domain.events import DocStored
 from event_core.domain.types import Modal, ObjectType
 
@@ -18,11 +18,10 @@ def test_handle_mp4_doc_stored(
     doc_key = str(mp4_file_path)
     doc_stored_event = DocStored(key=doc_key, modal=modal)
 
-    mapper = cast(FakeMapper, container.mapper())
-    storage = cast(FakeStorageClient, container.storage_client())
-    storage.add(
+    meta = cast(FakeMetaMapping, container.meta())
+    storage = cast(FakeStorageClient, container.storage())
+    storage[doc_key] = Payload(
         data=mp4_file_path.read_bytes(),
-        key=doc_key,
         obj_type=ObjectType.DOC,
         modal=modal,
     )  # storage should already have doc object
@@ -34,22 +33,16 @@ def test_handle_mp4_doc_stored(
     chunk_thumb_key = str(obj_key_prefix / f"1__CHUNK_THUMBNAIL{IMG_EXT}")
     doc_thumb_key = str(obj_key_prefix / f"0__DOCUMENT_THUMBNAIL{IMG_EXT}")
 
-    assert "DOCUMENT__DOCUMENT_THUMBNAIL" in mapper._namespaces
-    assert "CHUNK__CHUNK_THUMBNAIL" in mapper._namespaces
-    assert "CHUNK__DOCUMENT" in mapper._namespaces
-    assert (
-        mapper._namespaces["DOCUMENT__DOCUMENT_THUMBNAIL"][doc_key]
-        == doc_thumb_key
-    )
-    assert (
-        mapper._namespaces["CHUNK__CHUNK_THUMBNAIL"][chunk_key]
-        == chunk_thumb_key
-    )
-    assert mapper._namespaces["CHUNK__DOCUMENT"][chunk_key] == doc_key
-    assert doc_key in storage._objects
-    assert doc_thumb_key in storage._objects
-    assert chunk_key in storage._objects
-    assert chunk_thumb_key in storage._objects
+    assert Meta.DOC_THUMB in meta
+    assert Meta.CHUNK_THUMB in meta
+    assert Meta.PARENT in meta
+    assert meta[Meta.DOC_THUMB][doc_key] == doc_thumb_key
+    assert meta[Meta.CHUNK_THUMB][chunk_key] == chunk_thumb_key
+    assert meta[Meta.PARENT][chunk_key] == doc_key
+    assert doc_key in storage
+    assert doc_thumb_key in storage
+    assert chunk_key in storage
+    assert chunk_thumb_key in storage
 
 
 def test_handle_txt_doc_stored(
@@ -59,11 +52,10 @@ def test_handle_txt_doc_stored(
     doc_key = str(txt_file_path)
     doc_stored_event = DocStored(key=doc_key, modal=modal)
 
-    mapper = cast(FakeMapper, container.mapper())
-    storage = cast(FakeStorageClient, container.storage_client())
-    storage.add(
+    meta = cast(FakeMetaMapping, container.meta())
+    storage = cast(FakeStorageClient, container.storage())
+    storage[doc_key] = Payload(
         data=txt_file_path.read_bytes(),
-        key=doc_key,
         obj_type=ObjectType.DOC,
         modal=modal,
     )  # storage should already have doc object
@@ -73,10 +65,10 @@ def test_handle_txt_doc_stored(
     obj_key_prefix = txt_file_path.parent / txt_file_path.stem
     chunk_key = str(obj_key_prefix / "1__CHUNK.txt")
 
-    assert "CHUNK__DOCUMENT" in mapper._namespaces
-    assert mapper._namespaces["CHUNK__DOCUMENT"][chunk_key] == doc_key
-    assert doc_key in storage._objects
-    assert chunk_key in storage._objects
+    assert Meta.PARENT in meta
+    assert meta[Meta.PARENT][chunk_key] == doc_key
+    assert doc_key in storage
+    assert chunk_key in storage
 
 
 def test_handle_jpg_doc_stored(
@@ -86,11 +78,10 @@ def test_handle_jpg_doc_stored(
     doc_key = str(jpg_file_path)
     doc_stored_event = DocStored(key=doc_key, modal=modal)
 
-    mapper = cast(FakeMapper, container.mapper())
-    storage = cast(FakeStorageClient, container.storage_client())
-    storage.add(
+    meta = cast(FakeMetaMapping, container.meta())
+    storage = cast(FakeStorageClient, container.storage())
+    storage[doc_key] = Payload(
         data=jpg_file_path.read_bytes(),
-        key=doc_key,
         obj_type=ObjectType.DOC,
         modal=modal,
     )  # storage should already have doc object
@@ -101,13 +92,10 @@ def test_handle_jpg_doc_stored(
     chunk_key = str(obj_key_prefix / "1__CHUNK.jpg")
     doc_thumb_key = str(obj_key_prefix / f"0__DOCUMENT_THUMBNAIL{IMG_EXT}")
 
-    assert "DOCUMENT__DOCUMENT_THUMBNAIL" in mapper._namespaces
-    assert "CHUNK__DOCUMENT" in mapper._namespaces
-    assert (
-        mapper._namespaces["DOCUMENT__DOCUMENT_THUMBNAIL"][doc_key]
-        == doc_thumb_key
-    )
-    assert mapper._namespaces["CHUNK__DOCUMENT"][chunk_key] == doc_key
-    assert doc_key in storage._objects
-    assert doc_thumb_key in storage._objects
-    assert chunk_key in storage._objects
+    assert Meta.DOC_THUMB in meta
+    assert Meta.PARENT in meta
+    assert meta[Meta.DOC_THUMB][doc_key] == doc_thumb_key
+    assert meta[Meta.PARENT][chunk_key] == doc_key
+    assert doc_key in storage
+    assert doc_thumb_key in storage
+    assert chunk_key in storage
