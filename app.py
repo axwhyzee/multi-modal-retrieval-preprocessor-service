@@ -45,7 +45,7 @@ def _handle_doc_callback(
         mapper.set(
             from_type=ObjectType.DOC,
             to_type=ObjectType.DOC_THUMBNAIL,
-            key=obj_key,
+            key=key,
             val=str(default_thumb_key),
         )
 
