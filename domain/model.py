@@ -51,7 +51,7 @@ def _img_downsize(data: bytes) -> bytes:
     return _crop_img(data, IMG_CHUNK_WIDTH, IMG_CHUNK_HEIGHT)
 
 
-def _img_thumbnail(data: bytes) -> bytes:
+def img_thumbnail(data: bytes) -> bytes:
     return _crop_img(data, THUMB_WIDTH, THUMB_HEIGHT)
 
 
@@ -119,7 +119,7 @@ class ImageDoc(AbstractDoc):
     def generate_objs(self) -> Iterator[Obj]:
         yield Obj(
             seq=0,
-            data=_img_thumbnail(self._data),
+            data=img_thumbnail(self._data),
             type=ObjectType.DOC_THUMBNAIL,
             file_ext=IMG_EXT,
         )
@@ -172,7 +172,7 @@ class VideoDoc(AbstractDoc):
             video_paths = Path(temp_dir).iterdir()
             for i, video_path in enumerate(video_paths, start=1):
                 frame = _extract_first_frame(str(video_path), IMG_EXT)
-                frame_thumb = _img_thumbnail(frame)
+                frame_thumb = img_thumbnail(frame)
                 yield Obj(
                     seq=i,
                     data=_img_downsize(frame),
@@ -188,7 +188,7 @@ class VideoDoc(AbstractDoc):
 
     def _get_thumb(self) -> bytes:
         frame = _extract_first_frame(self._temp_file_path)
-        frame_thumb = _img_thumbnail(frame)
+        frame_thumb = img_thumbnail(frame)
         return frame_thumb
 
     def __exit__(self, *_):
