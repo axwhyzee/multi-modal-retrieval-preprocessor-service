@@ -17,10 +17,10 @@ from domain.exceptions import (
     VideoSplitterUnavailable,
 )
 
-THUMB_WIDTH = 400
-THUMB_HEIGHT = 600
-IMG_CHUNK_WIDTH = 180
-IMG_CHUNK_HEIGHT = 180
+THUMB_WIDTH = 300
+THUMB_HEIGHT = 200
+IMG_CHUNK_WIDTH = 400
+IMG_CHUNK_HEIGHT = 400
 IMG_EXT = FileExt.PNG
 
 
