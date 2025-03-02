@@ -11,7 +11,6 @@ from event_core.domain.types import Modal, ObjectType
 
 from bootstrap import DIContainer, bootstrap
 from domain.model import DOC_FACTORY, FileExt, Obj
-from domain.model import img_thumbnail
 
 DEFAULT_MODAL_THUMBNAILS: Dict[Modal, Path] = {
     Modal.TEXT: Path("assets/icons/txt.png"),
@@ -84,7 +83,7 @@ def _insert_default_thumbnails(
 ) -> None:
     for icon_path in DEFAULT_MODAL_THUMBNAILS.values():
         payload = Payload(
-            data=img_thumbnail(icon_path.read_bytes()),
+            data=icon_path.read_bytes(),
             obj_type=ObjectType.DOC_THUMBNAIL,
             modal=Modal.IMAGE,
         )
