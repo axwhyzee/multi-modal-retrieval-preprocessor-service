@@ -12,7 +12,7 @@ from event_core.domain.types import Modal, ObjectType
 from bootstrap import DIContainer, bootstrap
 from domain.model import DOC_FACTORY, FileExt, Obj, img_thumbnail
 
-DEFAULT_MODAL_THUMBNAILS: Dict[Modal, Path] = {
+DEFAULT_THUMBNAILS: Dict[Modal, Path] = {
     Modal.TEXT: Path("assets/icons/txt.png"),
 }
 
@@ -48,7 +48,7 @@ def _handle_doc_callback(
     doc_data = storage[key]
 
     # map to default thumbnail if applicable
-    if default_thumb_key := (DEFAULT_MODAL_THUMBNAILS.get(modal)):
+    if default_thumb_key := (DEFAULT_THUMBNAILS.get(modal)):
         meta[Meta.DOC_THUMB][key] = str(default_thumb_key)
 
     chunks_by_seq: Dict[int, str] = {}
@@ -81,7 +81,7 @@ def _handle_doc_callback(
 def _insert_default_thumbnails(
     storage: StorageClient = Provide[DIContainer.storage],
 ) -> None:
-    for icon_path in DEFAULT_MODAL_THUMBNAILS.values():
+    for icon_path in DEFAULT_THUMBNAILS.values():
         payload = Payload(
             data=img_thumbnail(icon_path.read_bytes()),
             obj_type=ObjectType.DOC_THUMBNAIL,
