@@ -30,7 +30,7 @@ class AbstractProcessor(ABC):
     3) Image documents
         Image documents have a thumbnail, but cannot be
         chunked further since an image is already the
-        smallest representable unit. Hence, a chunk is 
+        smallest representable unit. Hence, a chunk is
         the same image as the original doc, but downsized.
 
     All concrete processors implement a `__call__()`

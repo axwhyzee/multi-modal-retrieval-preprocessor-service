@@ -4,7 +4,7 @@ from typing import cast
 from event_core.adapters.services.meta import FakeMetaMapping, Meta
 from event_core.adapters.services.storage import FakeStorageClient, Payload
 from event_core.domain.events import DocStored
-from event_core.domain.types import Modal, UnitType
+from event_core.domain.types import UnitType
 
 from app import _handle_doc_callback
 from bootstrap import DIContainer
@@ -14,9 +14,8 @@ from processors.common import IMG_EXT
 def test_handle_mp4_doc_stored(
     vid_file_path: Path, container: DIContainer
 ) -> None:
-    modal = Modal.VIDEO
     doc_key = str(vid_file_path)
-    doc_stored_event = DocStored(key=doc_key, modal=modal)
+    doc_stored_event = DocStored(key=doc_key)
 
     meta = cast(FakeMetaMapping, container.meta())
     storage = cast(FakeStorageClient, container.storage())
@@ -47,9 +46,8 @@ def test_handle_mp4_doc_stored(
 def test_handle_txt_doc_stored(
     txt_file_path: Path, container: DIContainer
 ) -> None:
-    modal = Modal.TEXT
     doc_key = str(txt_file_path)
-    doc_stored_event = DocStored(key=doc_key, modal=modal)
+    doc_stored_event = DocStored(key=doc_key)
 
     meta = cast(FakeMetaMapping, container.meta())
     storage = cast(FakeStorageClient, container.storage())
@@ -72,9 +70,8 @@ def test_handle_txt_doc_stored(
 def test_handle_jpg_doc_stored(
     img_file_path: Path, container: DIContainer
 ) -> None:
-    modal = Modal.IMAGE
     doc_key = str(img_file_path)
-    doc_stored_event = DocStored(key=doc_key, modal=modal)
+    doc_stored_event = DocStored(key=doc_key)
 
     meta = cast(FakeMetaMapping, container.meta())
     storage = cast(FakeStorageClient, container.storage())

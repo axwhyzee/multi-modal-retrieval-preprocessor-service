@@ -17,6 +17,8 @@ from bootstrap import DIContainer, bootstrap
 from processors import PROCESSORS_BY_EXT
 from processors.common import Unit, resize_to_thumb
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_THUMBNAILS: Dict[FileExt, Path] = {
     FileExt.TXT: Path("assets/icons/txt.png"),
 }
@@ -55,17 +57,20 @@ def _handle_doc_callback(
         meta[Meta.DOC_THUMB][doc_key] = str(default_thumb_key)
 
     with PROCESSORS_BY_EXT[doc_ext](doc_data) as processor:
-        for unit in processor():
-            unit_key = _generate_key(doc_key, unit)
-            storage[unit_key] = Payload(data=unit.data, type=unit.type)
-            match unit.type:
-                case UnitType.DOC_THUMBNAIL:
-                    meta[Meta.DOC_THUMB][doc_key] = unit_key
-                case UnitType.CHUNK:
-                    meta[Meta.PARENT][unit_key] = doc_key
-                    chunks_by_seq[unit.seq] = unit_key
-                case UnitType.CHUNK_THUMBNAIL:
-                    thumbs_by_seq[unit.seq] = unit_key
+        try:
+            for unit in processor():
+                unit_key = _generate_key(doc_key, unit)
+                storage[unit_key] = Payload(data=unit.data, type=unit.type)
+                match unit.type:
+                    case UnitType.DOC_THUMBNAIL:
+                        meta[Meta.DOC_THUMB][doc_key] = unit_key
+                    case UnitType.CHUNK:
+                        meta[Meta.PARENT][unit_key] = doc_key
+                        chunks_by_seq[unit.seq] = unit_key
+                    case UnitType.CHUNK_THUMBNAIL:
+                        thumbs_by_seq[unit.seq] = unit_key
+        except Exception as e:
+            logger.warning(f"Failed to process {doc_key}")
 
     # map chunks to chunk thumbnails
     for thumb_seq, thumb_key in thumbs_by_seq.items():
