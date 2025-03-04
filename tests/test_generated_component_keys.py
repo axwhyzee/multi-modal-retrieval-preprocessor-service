@@ -1,80 +1,81 @@
 from pathlib import Path
 
 import pytest
+from event_core.domain.types import FileExt, UnitType
 
 from app import _generate_key
-from domain.model import FileExt, Obj, ObjectType
+from processors.common import Unit
 
 
 @pytest.mark.parametrize(
-    "key,obj,expected",
+    "key,unit,expected",
     (
         (
             Path("test.mp4"),
-            Obj(
+            Unit(
                 seq=0,
                 data=b"",
-                type=ObjectType.DOC_THUMBNAIL,
+                type=UnitType.DOC_THUMBNAIL,
                 file_ext=FileExt.PNG,
             ),
             "test/0__DOCUMENT_THUMBNAIL.png",
         ),
         (
             Path("test.mp4"),
-            Obj(seq=1, data=b"", type=ObjectType.CHUNK, file_ext=FileExt.PNG),
+            Unit(seq=1, data=b"", type=UnitType.CHUNK, file_ext=FileExt.PNG),
             "test/1__CHUNK.png",
         ),
         (
             Path("test.mp4"),
-            Obj(
+            Unit(
                 seq=1,
                 data=b"",
-                type=ObjectType.CHUNK_THUMBNAIL,
+                type=UnitType.CHUNK_THUMBNAIL,
                 file_ext=FileExt.PNG,
             ),
             "test/1__CHUNK_THUMBNAIL.png",
         ),
         (
             Path("test.jpg"),
-            Obj(
+            Unit(
                 seq=0,
                 data=b"",
-                type=ObjectType.DOC_THUMBNAIL,
+                type=UnitType.DOC_THUMBNAIL,
                 file_ext=FileExt.PNG,
             ),
             "test/0__DOCUMENT_THUMBNAIL.png",
         ),
         (
             Path("test.jpg"),
-            Obj(seq=1, data=b"", type=ObjectType.CHUNK, file_ext=FileExt.JPG),
+            Unit(seq=1, data=b"", type=UnitType.CHUNK, file_ext=FileExt.JPG),
             "test/1__CHUNK.jpg",
         ),
         (
             Path("test.jpg"),
-            Obj(
+            Unit(
                 seq=1,
                 data=b"",
-                type=ObjectType.CHUNK_THUMBNAIL,
+                type=UnitType.CHUNK_THUMBNAIL,
                 file_ext=FileExt.PNG,
             ),
             "test/1__CHUNK_THUMBNAIL.png",
         ),
         (
             Path("test.txt"),
-            Obj(
+            Unit(
                 seq=0,
                 data=b"",
-                type=ObjectType.DOC_THUMBNAIL,
+                type=UnitType.DOC_THUMBNAIL,
                 file_ext=FileExt.PNG,
             ),
             "test/0__DOCUMENT_THUMBNAIL.png",
         ),
         (
             Path("test.txt"),
-            Obj(seq=1, data=b"", type=ObjectType.CHUNK, file_ext=FileExt.TXT),
+            Unit(seq=1, data=b"", type=UnitType.CHUNK, file_ext=FileExt.TXT),
             "test/1__CHUNK.txt",
         ),
     ),
 )
-def test_generate_key(key: Path, obj: Obj, expected: str) -> None:
-    assert _generate_key(key, obj) == expected
+def test_generate_key(key: Path, unit: Unit, expected: str) -> None:
+    assert _generate_key(key, unit) == expected

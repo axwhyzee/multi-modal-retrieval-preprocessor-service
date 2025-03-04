@@ -1,32 +1,35 @@
 import logging
 from pathlib import Path
-from typing import Dict, Union, cast
+from typing import Dict, Union
 
 from dependency_injector.wiring import Provide, inject
 from event_core.adapters.pubsub import RedisConsumer
 from event_core.adapters.services.meta import AbstractMetaMapping, Meta
 from event_core.adapters.services.storage import Payload, StorageClient
 from event_core.domain.events import DocStored
-from event_core.domain.types import Modal, ObjectType
+from event_core.domain.types import (
+    PRIMITIVE_EXT_TO_MODAL,
+    FileExt,
+    Modal,
+    UnitType,
+    path_to_ext,
+)
 
 from bootstrap import DIContainer, bootstrap
-from domain.model import DOC_FACTORY, FileExt, Obj, img_thumbnail
+from processors import PROCESSORS_BY_EXT
+from processors.common import Unit, resize_to_thumb
 
-DEFAULT_THUMBNAILS: Dict[Modal, Path] = {
-    Modal.TEXT: Path("assets/icons/txt.png"),
+DEFAULT_THUMBNAILS: Dict[FileExt, Path] = {
+    FileExt.TXT: Path("assets/icons/txt.png"),
 }
 
 
-def _generate_key(key: Union[str, Path], obj: Obj) -> str:
+def _generate_key(key: Union[str, Path], unit: Unit) -> str:
     if isinstance(key, str):
         key = Path(key)
-    return str(key.parent / key.stem / f"{obj.seq}__{obj.type}{obj.file_ext}")
-
-
-def _file_ext_from_key(key: str) -> FileExt:
-    suffix = Path(key).suffix
-    file_ext = cast(FileExt, FileExt._value2member_map_[suffix])
-    return file_ext
+    return str(
+        key.parent / key.stem / f"{unit.seq}__{unit.type}{unit.file_ext}"
+    )
 
 
 @inject
@@ -38,38 +41,37 @@ def _handle_doc_callback(
     """
     Perform the following preprocessing steps:
 
-    1. Generate objects from document
-    2. Store objects
-    3. Map out object metas
+    1. Generate units from document
+    2. Store units
+    3. Map out unit metas
     """
-    key = event.key
-    modal = event.modal
-    file_ext = _file_ext_from_key(key)
-    doc_data = storage[key]
-
-    # map to default thumbnail if applicable
-    if default_thumb_key := (DEFAULT_THUMBNAILS.get(modal)):
-        meta[Meta.DOC_THUMB][key] = str(default_thumb_key)
-
     chunks_by_seq: Dict[int, str] = {}
     thumbs_by_seq: Dict[int, str] = {}
 
-    with DOC_FACTORY[modal](doc_data, file_ext) as document:
-        for obj in document.generate_objs():
-            obj_key = _generate_key(key, obj)
-            storage[obj_key] = Payload(
-                data=obj.data, obj_type=obj.type, modal=modal
+    doc_key = event.key
+    doc_ext = path_to_ext(doc_key)
+    doc_data = storage[doc_key]
+
+    # map doc key to default thumbnail key if applicable
+    if default_thumb_key := (DEFAULT_THUMBNAILS.get(doc_ext)):
+        meta[Meta.DOC_THUMB][doc_key] = str(default_thumb_key)
+
+    with PROCESSORS_BY_EXT[doc_ext](doc_data, doc_ext) as processor:
+        for unit in processor():
+            comp_key = _generate_key(doc_key, unit)
+            storage[comp_key] = Payload(
+                data=unit.data,
+                type=unit.type,
+                modal=PRIMITIVE_EXT_TO_MODAL[unit.file_ext],
             )
-            match obj.type:
-                case ObjectType.DOC_THUMBNAIL:
-                    # map doc to doc thumbnail
-                    meta[Meta.DOC_THUMB][key] = obj_key
-                case ObjectType.CHUNK:
-                    # map chunk to parent doc
-                    meta[Meta.PARENT][obj_key] = key
-                    chunks_by_seq[obj.seq] = obj_key
-                case ObjectType.CHUNK_THUMBNAIL:
-                    thumbs_by_seq[obj.seq] = obj_key
+            match unit.type:
+                case UnitType.DOC_THUMBNAIL:
+                    meta[Meta.DOC_THUMB][doc_key] = comp_key
+                case UnitType.CHUNK:
+                    meta[Meta.PARENT][comp_key] = doc_key
+                    chunks_by_seq[unit.seq] = comp_key
+                case UnitType.CHUNK_THUMBNAIL:
+                    thumbs_by_seq[unit.seq] = comp_key
 
     # map chunks to chunk thumbnails
     for thumb_seq, thumb_key in thumbs_by_seq.items():
@@ -81,13 +83,13 @@ def _handle_doc_callback(
 def _insert_default_thumbnails(
     storage: StorageClient = Provide[DIContainer.storage],
 ) -> None:
-    for icon_path in DEFAULT_THUMBNAILS.values():
+    for thumb_path in DEFAULT_THUMBNAILS.values():
         payload = Payload(
-            data=img_thumbnail(icon_path.read_bytes()),
-            obj_type=ObjectType.DOC_THUMBNAIL,
+            data=resize_to_thumb(thumb_path.read_bytes()),
+            type=UnitType.DOC_THUMBNAIL,
             modal=Modal.IMAGE,
         )
-        storage[str(icon_path)] = payload
+        storage[str(thumb_path)] = payload
 
 
 def main():

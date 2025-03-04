@@ -1,10 +1,12 @@
 annotated-types==0.7.0
 anyio==4.8.0
 certifi==2025.1.31
+cffi==1.17.1
 charset-normalizer==3.4.1
 click==8.1.8
+cryptography==44.0.1
 dependency-injector==4.46.0
-event_core @ git+https://github.com/axwhyzee/multi-modal-retrieval-event-core.git
+event_core @ git+https://github.com/axwhyzee/multi-modal-retrieval-event-core.git@61d625764840581f7209110f2efea9c5fbb509d4
 h11==0.14.0
 httpcore==1.0.7
 httpx==0.28.1
@@ -20,11 +22,14 @@ opencv-python==4.11.0.86
 orjson==3.10.15
 packaging==24.2
 pathspec==0.12.1
+pdf2image==1.17.0
 pillow==11.1.0
 platformdirs==4.3.6
 pluggy==1.5.0
+pycparser==2.22
 pydantic==2.10.6
 pydantic_core==2.27.2
+PyMuPDF==1.25.3
 pytest==8.3.4
 python-dotenv==1.0.1
 PyYAML==6.0.2

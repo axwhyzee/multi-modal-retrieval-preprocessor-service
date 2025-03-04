@@ -4,29 +4,31 @@ from typing import Iterator, cast
 import pytest
 from event_core.adapters.services.meta import FakeMetaMapping
 from event_core.adapters.services.storage import FakeStorageClient
-from event_core.domain.types import MODAL_FACTORY, FileExt
+from event_core.domain.types import FileExt, path_to_ext
 
 from bootstrap import MODULES, DIContainer
-from domain.model import DOC_FACTORY, AbstractDoc
+from processors import PROCESSORS_BY_EXT
+from processors.base import AbstractProcessor
 
 TEST_DATA_DIR_PATH = Path("tests/data")
 
 
-def _get_doc(path: Path) -> Iterator[AbstractDoc]:
-    file_ext = cast(FileExt, FileExt._value2member_map_[path.suffix])
+def _get_processor(path: Path) -> Iterator[AbstractProcessor]:
+    file_ext = path_to_ext(path)
     doc_data = path.read_bytes()
-    modal = MODAL_FACTORY[file_ext]
-    with DOC_FACTORY[modal](data=doc_data, file_ext=file_ext) as doc:
-        yield doc
+    with PROCESSORS_BY_EXT[file_ext](
+        data=doc_data, file_ext=file_ext
+    ) as processor:
+        yield processor
 
 
 @pytest.fixture
-def jpg_file_path() -> Path:
+def img_file_path() -> Path:
     return TEST_DATA_DIR_PATH / "test.jpg"
 
 
 @pytest.fixture
-def mp4_file_path() -> Path:
+def vid_file_path() -> Path:
     return TEST_DATA_DIR_PATH / "test.mp4"
 
 
@@ -36,18 +38,18 @@ def txt_file_path() -> Path:
 
 
 @pytest.fixture
-def jpg_doc(jpg_file_path: Path) -> Iterator[AbstractDoc]:
-    yield from _get_doc(jpg_file_path)
+def img_processor(img_file_path: Path) -> Iterator[AbstractProcessor]:
+    yield from _get_processor(img_file_path)
 
 
 @pytest.fixture
-def mp4_doc(mp4_file_path: Path) -> Iterator[AbstractDoc]:
-    yield from _get_doc(mp4_file_path)
+def vid_processor(vid_file_path: Path) -> Iterator[AbstractProcessor]:
+    yield from _get_processor(vid_file_path)
 
 
 @pytest.fixture
-def txt_doc(txt_file_path: Path) -> Iterator[AbstractDoc]:
-    yield from _get_doc(txt_file_path)
+def txt_processor(txt_file_path: Path) -> Iterator[AbstractProcessor]:
+    yield from _get_processor(txt_file_path)
 
 
 @pytest.fixture

@@ -3,25 +3,28 @@ from io import BytesIO
 from pathlib import Path
 
 import pytest
-from event_core.domain.types import ObjectType
+from event_core.domain.types import UnitType
 from PIL import Image
 
-from domain.model import THUMB_HEIGHT, THUMB_WIDTH, AbstractDoc
+from config import THUMB_HEIGHT, THUMB_WIDTH
+from processors.base import AbstractProcessor
 
 
 def _to_alnum(s: str) -> str:
     return re.sub(r"[^a-zA-Z0-9]", "", s)
 
 
-@pytest.mark.parametrize("fixture_doc", ("jpg_doc", "mp4_doc"))
+@pytest.mark.parametrize(
+    "fixture_processor", ("img_processor", "vid_processor")
+)
 def test_img_and_video_docs_generate_doc_thumbnail(
-    fixture_doc: str, request: pytest.FixtureRequest
+    fixture_processor: str, request: pytest.FixtureRequest
 ) -> None:
-    doc: AbstractDoc = request.getfixturevalue(fixture_doc)
+    processor: AbstractProcessor = request.getfixturevalue(fixture_processor)
     doc_thumb_data = None
-    for obj in doc.generate_objs():
-        if obj.type == ObjectType.DOC_THUMBNAIL:
-            doc_thumb_data = obj.data
+    for unit in processor():
+        if unit.type == UnitType.DOC_THUMBNAIL:
+            doc_thumb_data = unit.data
             break
 
     assert doc_thumb_data is not None
@@ -31,13 +34,13 @@ def test_img_and_video_docs_generate_doc_thumbnail(
 
 
 def test_text_doc_original_text_equals_chunks(
-    txt_doc: AbstractDoc, txt_file_path: Path
+    txt_processor: AbstractProcessor, txt_file_path: Path
 ) -> None:
     original = txt_file_path.read_text()
     text_chunks = [
-        obj.data.decode("utf-8")
-        for obj in txt_doc.generate_objs()
-        if obj.type == ObjectType.CHUNK
+        unit.data.decode("utf-8")
+        for unit in txt_processor()
+        if unit.type == UnitType.CHUNK
     ]
     concat_text = "".join(text_chunks)
     assert _to_alnum(original) == _to_alnum(concat_text)
