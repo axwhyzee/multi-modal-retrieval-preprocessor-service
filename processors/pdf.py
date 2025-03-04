@@ -37,7 +37,7 @@ def _imgs_from_pdf(data: bytes) -> Iterator[Tuple[bytes, FileExt]]:
             xref = img[0]
             base_img = pdf.extract_image(xref)
             img_bytes = base_img["image"]
-            img_ext = path_to_ext("." + base_img["ext"])
+            img_ext = path_to_ext("_." + base_img["ext"])
             yield img_bytes, img_ext
 
 
