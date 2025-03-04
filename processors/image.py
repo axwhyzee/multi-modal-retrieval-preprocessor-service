@@ -22,3 +22,9 @@ class ImageProcessor(AbstractProcessor):
             type=UnitType.CHUNK,
             file_ext=self._file_ext,
         )
+        yield Unit(
+            seq=1,
+            data=resize_to_thumb(self._data),
+            type=UnitType.CHUNK_THUMBNAIL,
+            file_ext=IMG_EXT,
+        )
