@@ -23,7 +23,6 @@ def test_handle_mp4_doc_stored(
     storage[doc_key] = Payload(
         data=vid_file_path.read_bytes(),
         type=UnitType.DOC,
-        modal=modal,
     )  # storage should already have doc object
 
     _handle_doc_callback(doc_stored_event)
@@ -57,7 +56,6 @@ def test_handle_txt_doc_stored(
     storage[doc_key] = Payload(
         data=txt_file_path.read_bytes(),
         type=UnitType.DOC,
-        modal=modal,
     )  # storage should already have doc object
 
     _handle_doc_callback(doc_stored_event)
@@ -83,7 +81,6 @@ def test_handle_jpg_doc_stored(
     storage[doc_key] = Payload(
         data=img_file_path.read_bytes(),
         type=UnitType.DOC,
-        modal=modal,
     )  # storage should already have doc object
 
     _handle_doc_callback(doc_stored_event)

@@ -8,9 +8,7 @@ from event_core.adapters.services.meta import AbstractMetaMapping, Meta
 from event_core.adapters.services.storage import Payload, StorageClient
 from event_core.domain.events import DocStored
 from event_core.domain.types import (
-    PRIMITIVE_EXT_TO_MODAL,
     FileExt,
-    Modal,
     UnitType,
     path_to_ext,
 )
@@ -56,22 +54,18 @@ def _handle_doc_callback(
     if default_thumb_key := (DEFAULT_THUMBNAILS.get(doc_ext)):
         meta[Meta.DOC_THUMB][doc_key] = str(default_thumb_key)
 
-    with PROCESSORS_BY_EXT[doc_ext](doc_data, doc_ext) as processor:
+    with PROCESSORS_BY_EXT[doc_ext](doc_data) as processor:
         for unit in processor():
-            comp_key = _generate_key(doc_key, unit)
-            storage[comp_key] = Payload(
-                data=unit.data,
-                type=unit.type,
-                modal=PRIMITIVE_EXT_TO_MODAL[unit.file_ext],
-            )
+            unit_key = _generate_key(doc_key, unit)
+            storage[unit_key] = Payload(data=unit.data, type=unit.type)
             match unit.type:
                 case UnitType.DOC_THUMBNAIL:
-                    meta[Meta.DOC_THUMB][doc_key] = comp_key
+                    meta[Meta.DOC_THUMB][doc_key] = unit_key
                 case UnitType.CHUNK:
-                    meta[Meta.PARENT][comp_key] = doc_key
-                    chunks_by_seq[unit.seq] = comp_key
+                    meta[Meta.PARENT][unit_key] = doc_key
+                    chunks_by_seq[unit.seq] = unit_key
                 case UnitType.CHUNK_THUMBNAIL:
-                    thumbs_by_seq[unit.seq] = comp_key
+                    thumbs_by_seq[unit.seq] = unit_key
 
     # map chunks to chunk thumbnails
     for thumb_seq, thumb_key in thumbs_by_seq.items():
@@ -87,7 +81,6 @@ def _insert_default_thumbnails(
         payload = Payload(
             data=resize_to_thumb(thumb_path.read_bytes()),
             type=UnitType.DOC_THUMBNAIL,
-            modal=Modal.IMAGE,
         )
         storage[str(thumb_path)] = payload
 

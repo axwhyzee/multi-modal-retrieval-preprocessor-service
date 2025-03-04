@@ -16,9 +16,7 @@ TEST_DATA_DIR_PATH = Path("tests/data")
 def _get_processor(path: Path) -> Iterator[AbstractProcessor]:
     file_ext = path_to_ext(path)
     doc_data = path.read_bytes()
-    with PROCESSORS_BY_EXT[file_ext](
-        data=doc_data, file_ext=file_ext
-    ) as processor:
+    with PROCESSORS_BY_EXT[file_ext](doc_data) as processor:
         yield processor
 
 
