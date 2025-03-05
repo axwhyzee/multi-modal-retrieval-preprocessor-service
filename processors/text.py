@@ -28,11 +28,11 @@ class TextProcessor(AbstractProcessor):
         texts = splitter.split_text(self._text)
         texts.append("")  # ensure last chunk is consumed even if < min width
         accumulated = ""
-        for i, doc in enumerate(texts, start=1):
+        for seq, doc in enumerate(texts, start=1):
             accumulated += doc + "\n"
             if len(accumulated) >= TEXT_CHUNK_MIN_SIZE:
                 yield Unit(
-                    seq=i,
+                    seq=seq,
                     data=accumulated.encode("utf-8"),
                     type=UnitType.CHUNK,
                     file_ext=FileExt.TXT,

@@ -74,18 +74,17 @@ class VideoProcessor(AbstractProcessor):
                     "`>> brew install mkvtoolnix`"
                 )
             video_paths = Path(temp_dir).iterdir()
-            for i, video_path in enumerate(video_paths, start=1):
+            for seq, video_path in enumerate(video_paths, start=1):
                 frame = _extract_first_frame(str(video_path), IMG_EXT)
-                frame_thumb = resize_to_thumb(frame)
                 yield Unit(
-                    seq=i,
+                    seq=seq,
                     data=resize_to_chunk(frame),
                     type=UnitType.CHUNK,
                     file_ext=IMG_EXT,
                 )
                 yield Unit(
-                    seq=i,
-                    data=frame_thumb,
+                    seq=seq,
+                    data=resize_to_thumb(frame),
                     type=UnitType.CHUNK_THUMBNAIL,
                     file_ext=IMG_EXT,
                 )
