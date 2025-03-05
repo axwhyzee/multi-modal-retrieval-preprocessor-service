@@ -92,6 +92,7 @@ def _insert_default_thumbnails(
 
 def main():
     _insert_default_thumbnails()
+    logger.info("Listening to event broker")
     with RedisConsumer() as consumer:
         consumer.subscribe(DocStored)
         consumer.listen(_handle_doc_callback)
