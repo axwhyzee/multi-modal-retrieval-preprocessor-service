@@ -1,14 +1,15 @@
 import re
 from io import BytesIO
-from typing import Iterator, Tuple
+from typing import Iterator
 
 import fitz  # type: ignore
-from event_core.domain.types import FileExt, UnitType, path_to_ext
+from event_core.domain.types import FileExt, UnitType
 from pdf2image import convert_from_bytes
 
 from config import IMG_EXT
 from processors.base import AbstractProcessor
 from processors.common import (
+    IMG_EXT,
     Unit,
     ext_to_pil_fmt,
     resize_to_chunk,
@@ -16,6 +17,10 @@ from processors.common import (
 )
 from processors.exceptions import EmptyPDF
 from processors.text import TextProcessor
+
+X_CUTS = 2
+Y_CUTS = 2
+PAGE_MAT = fitz.Matrix(X_CUTS, Y_CUTS)
 
 
 def _text_from_pdf(data: bytes) -> str:
@@ -27,18 +32,40 @@ def _text_from_pdf(data: bytes) -> str:
     return text
 
 
-def _imgs_from_pdf(data: bytes) -> Iterator[Tuple[bytes, FileExt]]:
-    pdf = fitz.open(stream=data, filetype="pdf")
-    for page_idx in range(len(pdf)):
-        page = pdf.load_page(page_idx)
-        imgs = page.get_images(full=True)
+def _imgs_from_pdf(data: bytes) -> Iterator[bytes]:
+    """
+    Split each page into X_CUTS * Y_CUTS number of quadrants.
 
-        for img in imgs:
+    For each quandrant, save entire quadrant as image if and
+    only if it contains at least 1 image.
+    """
+
+    pdf = fitz.open(stream=data, filetype="pdf")
+    for page in pdf:
+        rect = page.rect
+        step_x, step_y = rect.tl + rect.br
+        step_x /= X_CUTS
+        step_y /= Y_CUTS
+
+        quads_w_imgs = set()
+        for img in page.get_images(full=True):
             xref = img[0]
-            base_img = pdf.extract_image(xref)
-            img_bytes = base_img["image"]
-            img_ext = path_to_ext("_." + base_img["ext"])
-            yield img_bytes, img_ext
+            for bbox in page.get_image_rects(xref):
+                [x1, y1, x2, y2] = bbox
+                quads_w_imgs.add(
+                    (
+                        (x1 // step_x * step_x, y1 // step_y * step_y),
+                        (
+                            (x2 // step_x + 1) * step_x,
+                            (y2 // step_y + 1) * step_y,
+                        ),
+                    )
+                )
+
+        for quad in quads_w_imgs:
+            clip = fitz.Rect(*quad)
+            pix = page.get_pixmap(matrix=PAGE_MAT, clip=clip)
+            yield pix.tobytes(IMG_EXT.lstrip("."))
 
 
 def _get_pdf_thumbnail(data: bytes) -> bytes:
@@ -63,9 +90,7 @@ class PdfProcessor(AbstractProcessor):
         imgs = _imgs_from_pdf(self._data)
         pdf_text = _text_from_pdf(self._data)
         pdf_text = pdf_text.replace("\n", " ")
-        pdf_text = re.sub(
-            r"\s{2,}", " ", pdf_text
-        )  # sub >=2 whitespaces with single whitespace
+        pdf_text = re.sub(r"\s{2,}", " ", pdf_text)  # truncate contiguous " "
 
         # doc thumbnail
         doc_thumb = _get_pdf_thumbnail(self._data)
@@ -90,12 +115,12 @@ class PdfProcessor(AbstractProcessor):
             )
 
         # image chunks
-        for seq, (img, img_ext) in enumerate(imgs, start=seq + 1):
+        for seq, img in enumerate(imgs, start=seq + 1):
             yield Unit(
                 seq=seq,
                 data=resize_to_chunk(img),
                 type=UnitType.CHUNK,
-                file_ext=img_ext,
+                file_ext=IMG_EXT,
             )
             yield Unit(
                 seq=seq,
