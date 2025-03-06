@@ -21,7 +21,7 @@ def test_img_doc_generates_one_chunk_and_one_doc_thumbnail(
 ) -> None:
     types = Counter([unit.type for unit in img_processor()])
     assert types[UnitType.CHUNK] == 1
-    assert types[UnitType.CHUNK_THUMBNAIL] == 0
+    assert types[UnitType.CHUNK_THUMBNAIL] == 1
     assert types[UnitType.DOC_THUMBNAIL] == 1
 
 

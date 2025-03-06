@@ -6,7 +6,7 @@ import fitz  # type: ignore
 from event_core.domain.types import FileExt, UnitType
 from pdf2image import convert_from_bytes
 
-from config import PDF_X_CUTS, PDF_Y_CUTS, IMG_EXT
+from config import IMG_EXT, PDF_X_CUTS, PDF_Y_CUTS
 from processors.base import AbstractProcessor
 from processors.common import (
     IMG_EXT,
@@ -17,7 +17,6 @@ from processors.common import (
 )
 from processors.exceptions import EmptyPDF
 from processors.text import TextProcessor
-
 
 PAGE_MAT = fitz.Matrix(PDF_X_CUTS, PDF_Y_CUTS)
 
@@ -32,8 +31,8 @@ def _text_from_pdf(data: bytes) -> str:
 
 def _imgs_from_pdf(data: bytes) -> Iterator[bytes]:
     """
-    Split each page into PDF_X_CUTS * PDF_Y_CUTS number of 
-    quadrants. For each quandrant, save entire quadrant as 
+    Split each page into PDF_X_CUTS * PDF_Y_CUTS number of
+    quadrants. For each quandrant, save entire quadrant as
     image if and only if it contains at least 1 image.
     """
 

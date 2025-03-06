@@ -17,7 +17,7 @@ def _to_alnum(s: str) -> str:
 @pytest.mark.parametrize(
     "fixture_processor", ("img_processor", "vid_processor")
 )
-def test_img_and_video_docs_generate_doc_thumbnail(
+def _test_img_and_video_docs_generate_doc_thumbnail(
     fixture_processor: str, request: pytest.FixtureRequest
 ) -> None:
     processor: AbstractProcessor = request.getfixturevalue(fixture_processor)

@@ -24,17 +24,26 @@ class TextProcessor(AbstractProcessor):
             separators=["\n\n", "\n", ". ", ",", " ", ""],
             is_separator_regex=False,
             keep_separator="end",
+            strip_whitespace=False,
         )
         texts = splitter.split_text(self._text)
-        texts.append("")  # ensure last chunk is consumed even if < min width
         accumulated = ""
-        for seq, doc in enumerate(texts, start=1):
+        seq = 1
+        for doc in texts:
             accumulated += doc
             if len(accumulated) >= TEXT_CHUNK_MIN_SIZE:
                 yield Unit(
                     seq=seq,
-                    data=accumulated.encode("utf-8"),
+                    data=accumulated.encode("utf-8").strip(),
                     type=UnitType.CHUNK,
                     file_ext=FileExt.TXT,
                 )
+                seq += 1
                 accumulated = ""
+        if accumulated:
+            yield Unit(
+                seq=seq,
+                data=accumulated.encode("utf-8").strip(),
+                type=UnitType.CHUNK,
+                file_ext=FileExt.TXT,
+            )
