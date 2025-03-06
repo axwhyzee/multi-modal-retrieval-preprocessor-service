@@ -23,13 +23,13 @@ class TextProcessor(AbstractProcessor):
             length_function=len,
             separators=["\n\n", "\n", ". ", ",", " ", ""],
             is_separator_regex=False,
-            keep_separator=False,
+            keep_separator="end",
         )
         texts = splitter.split_text(self._text)
         texts.append("")  # ensure last chunk is consumed even if < min width
         accumulated = ""
         for seq, doc in enumerate(texts, start=1):
-            accumulated += doc + "\n"
+            accumulated += doc
             if len(accumulated) >= TEXT_CHUNK_MIN_SIZE:
                 yield Unit(
                     seq=seq,
