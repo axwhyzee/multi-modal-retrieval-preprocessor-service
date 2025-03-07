@@ -40,10 +40,11 @@ class TextProcessor(AbstractProcessor):
                 )
                 seq += 1
                 accumulated = ""
-        if accumulated:
+
+        if accumulated := accumulated.strip():
             yield Unit(
                 seq=seq,
-                data=accumulated.encode("utf-8").strip(),
+                data=accumulated.encode("utf-8"),
                 type=UnitType.CHUNK,
                 file_ext=FileExt.TXT,
             )
