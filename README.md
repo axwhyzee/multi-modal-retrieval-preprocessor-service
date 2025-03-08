@@ -34,3 +34,8 @@ REDIS_PASSWORD=...
 
 STORAGE_SERVICE_API_URL=http://host.docker.internal:5001/
 ```
+
+## Run
+```
+python app.py
+```
