@@ -8,7 +8,7 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
-Install additional dependencies (Skip the below steps if you intend to just run the docker container. The following libraries will be installed in the Docker container)
+Install additional dependencies
 ```
 # for manipulating PDFs
 brew install poppler-utils
