@@ -1,9 +1,9 @@
 import re
 from io import BytesIO
-from typing import Iterator
+from typing import Iterator, Tuple
 
 import fitz  # type: ignore
-from event_core.domain.types import FileExt, UnitType
+from event_core.domain.types import FileExt, UnitType, path_to_ext
 from pdf2image import convert_from_bytes
 
 from config import IMG_EXT, PDF_X_CUTS, PDF_Y_CUTS
@@ -43,25 +43,16 @@ def _imgs_from_pdf(data: bytes) -> Iterator[bytes]:
         step_x /= PDF_X_CUTS
         step_y /= PDF_Y_CUTS
 
-        quads_w_imgs = set()
-        for img in page.get_images(full=True):
-            xref = img[0]
-            for bbox in page.get_image_rects(xref):
-                [x1, y1, x2, y2] = bbox
-                quads_w_imgs.add(
-                    (
-                        (x1 // step_x * step_x, y1 // step_y * step_y),
-                        (
-                            (x2 // step_x + 1) * step_x,
-                            (y2 // step_y + 1) * step_y,
-                        ),
-                    )
+        for ix in range(PDF_X_CUTS):
+            for iy in range(PDF_Y_CUTS):
+                clip = fitz.Rect(
+                    x0=ix * step_x,
+                    y0=iy * step_y,
+                    x1=(ix + 1) * step_x,
+                    y1=(iy + 1) * step_y,
                 )
-
-        for quad in quads_w_imgs:
-            clip = fitz.Rect(*quad)
-            pix = page.get_pixmap(matrix=PAGE_MAT, clip=clip)
-            yield pix.tobytes(IMG_EXT.lstrip("."))
+                pix = page.get_pixmap(matrix=PAGE_MAT, clip=clip)
+                yield pix.tobytes(IMG_EXT.lstrip("."))
 
 
 def _get_pdf_thumbnail(data: bytes) -> bytes:
