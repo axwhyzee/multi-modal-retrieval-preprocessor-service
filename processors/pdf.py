@@ -1,12 +1,13 @@
-import re
+import tempfile
 from io import BytesIO
-from typing import Iterator, Tuple
+from pathlib import Path
+from typing import Iterator
 
-import fitz  # type: ignore
-from event_core.domain.types import FileExt, UnitType, path_to_ext
+from event_core.domain.types import FileExt, UnitType
 from pdf2image import convert_from_bytes
+from unstructured.documents.elements import ElementType
+from unstructured.partition.pdf import partition_pdf
 
-from config import IMG_EXT, PDF_X_CUTS, PDF_Y_CUTS
 from processors.base import AbstractProcessor
 from processors.common import (
     IMG_EXT,
@@ -17,42 +18,6 @@ from processors.common import (
 )
 from processors.exceptions import EmptyPDF
 from processors.text import TextProcessor
-
-PAGE_MAT = fitz.Matrix(PDF_X_CUTS, PDF_Y_CUTS)
-
-
-def _text_from_pdf(data: bytes) -> str:
-    pdf = fitz.open(stream=data, filetype="pdf")
-    text = ""
-    for page in pdf:
-        text += page.get_text("text") + "\n"
-    return text
-
-
-def _imgs_from_pdf(data: bytes) -> Iterator[bytes]:
-    """
-    Split each page into PDF_X_CUTS * PDF_Y_CUTS number of
-    quadrants. For each quandrant, save entire quadrant as
-    image if and only if it contains at least 1 image.
-    """
-
-    pdf = fitz.open(stream=data, filetype="pdf")
-    for page in pdf:
-        rect = page.rect
-        step_x, step_y = rect.tl + rect.br
-        step_x /= PDF_X_CUTS
-        step_y /= PDF_Y_CUTS
-
-        for ix in range(PDF_X_CUTS):
-            for iy in range(PDF_Y_CUTS):
-                clip = fitz.Rect(
-                    x0=ix * step_x,
-                    y0=iy * step_y,
-                    x1=(ix + 1) * step_x,
-                    y1=(iy + 1) * step_y,
-                )
-                pix = page.get_pixmap(matrix=PAGE_MAT, clip=clip)
-                yield pix.tobytes(IMG_EXT.lstrip("."))
 
 
 def _get_pdf_thumbnail(data: bytes) -> bytes:
@@ -74,11 +39,6 @@ class PdfProcessor(AbstractProcessor):
         super().__init__(data, file_ext, *args, **kwargs)
 
     def __call__(self) -> Iterator[Unit]:
-        imgs = _imgs_from_pdf(self._data)
-        pdf_text = _text_from_pdf(self._data)
-        pdf_text = pdf_text.replace("\n", " ")
-        pdf_text = re.sub(r"\s{2,}", " ", pdf_text)  # truncate contiguous " "
-
         # doc thumbnail
         doc_thumb = _get_pdf_thumbnail(self._data)
         doc_thumb = resize_to_thumb(doc_thumb)
@@ -90,28 +50,45 @@ class PdfProcessor(AbstractProcessor):
         )
 
         seq = 1
+        with tempfile.TemporaryDirectory() as temp_dir:
+            chunks = partition_pdf(
+                file=BytesIO(self._data),
+                infer_table_structure=True,
+                strategy="hi_res",
+                extract_image_block_types=[
+                    ElementType.IMAGE,
+                    ElementType.TABLE,
+                    ElementType.FIGURE,
+                    ElementType.PICTURE,
+                ],
+                extract_image_block_output_dir=temp_dir,
+                dedupe_images=True,
+            )
+
+            # images
+            for img_path in Path(temp_dir).iterdir():
+                img = img_path.read_bytes()
+                yield Unit(
+                    seq=seq,
+                    data=resize_to_chunk(img),
+                    type=UnitType.CHUNK,
+                    file_ext=IMG_EXT,
+                )
+                yield Unit(
+                    seq=seq,
+                    data=resize_to_thumb(img),
+                    type=UnitType.CHUNK_THUMBNAIL,
+                    file_ext=IMG_EXT,
+                )
+                seq += 1
 
         # text chunks
-        text_processor = TextProcessor(data=pdf_text.encode("utf-8"))
+        text = "\n".join([chunk.text for chunk in chunks])
+        text_processor = TextProcessor(data=text.encode("utf-8"))
         for seq, unit in enumerate(text_processor(), start=seq):
             yield Unit(
                 seq=seq,
                 data=unit.data,
                 type=UnitType.CHUNK,
                 file_ext=FileExt.TXT,
-            )
-
-        # image chunks
-        for seq, img in enumerate(imgs, start=seq + 1):
-            yield Unit(
-                seq=seq,
-                data=resize_to_chunk(img),
-                type=UnitType.CHUNK,
-                file_ext=IMG_EXT,
-            )
-            yield Unit(
-                seq=seq,
-                data=resize_to_thumb(img),
-                type=UnitType.CHUNK_THUMBNAIL,
-                file_ext=IMG_EXT,
             )
