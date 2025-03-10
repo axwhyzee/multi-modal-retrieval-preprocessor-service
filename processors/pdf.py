@@ -62,7 +62,6 @@ class PdfProcessor(AbstractProcessor):
                     ElementType.PICTURE,
                 ],
                 extract_image_block_output_dir=temp_dir,
-                dedupe_images=True,
             )
 
             # images
