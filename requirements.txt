@@ -20,7 +20,7 @@ Deprecated==1.2.18
 effdet==0.4.1
 emoji==2.14.1
 eval_type_backport==0.2.2
-event_core @ git+https://github.com/axwhyzee/multi-modal-retrieval-event-core.git@08cc3eec6c815ec42d515caf728f7857f6ae075a
+event_core @ git+https://github.com/axwhyzee/multi-modal-retrieval-event-core.git
 filelock==3.17.0
 filetype==1.2.0
 flatbuffers==25.2.10
