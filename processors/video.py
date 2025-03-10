@@ -73,7 +73,9 @@ class VideoProcessor(AbstractProcessor):
                     "`>> brew install ffmpeg` or\n"
                     "`>> brew install mkvtoolnix`"
                 )
-            video_paths = Path(temp_dir).iterdir()
+            video_paths = list(Path(temp_dir).iterdir())
+            if not video_paths:
+                video_paths.append(self._temp_file_path)
             for seq, video_path in enumerate(video_paths, start=1):
                 frame = _extract_first_frame(str(video_path), IMG_EXT)
                 yield Unit(
