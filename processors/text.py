@@ -1,6 +1,6 @@
 from typing import Iterator
 
-from event_core.domain.types import FileExt, UnitType
+from event_core.domain.types import Element, FileExt
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from config import TEXT_CHUNK_MIN_SIZE, TEXT_CHUNK_OVERLAP, TEXT_CHUNK_SIZE
@@ -35,7 +35,7 @@ class TextProcessor(AbstractProcessor):
                 yield Unit(
                     seq=seq,
                     data=accumulated.encode("utf-8").strip(),
-                    type=UnitType.CHUNK,
+                    type=Element.TEXT,
                     file_ext=FileExt.TXT,
                 )
                 seq += 1
@@ -45,6 +45,6 @@ class TextProcessor(AbstractProcessor):
             yield Unit(
                 seq=seq,
                 data=accumulated.encode("utf-8"),
-                type=UnitType.CHUNK,
+                type=Element.TEXT,
                 file_ext=FileExt.TXT,
             )

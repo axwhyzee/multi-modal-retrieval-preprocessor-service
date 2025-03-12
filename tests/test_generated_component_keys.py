@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from event_core.domain.types import FileExt, UnitType
+from event_core.domain.types import Asset, Element, FileExt
 
 from app import _generate_key
 from processors.common import Unit
@@ -15,65 +15,65 @@ from processors.common import Unit
             Unit(
                 seq=0,
                 data=b"",
-                type=UnitType.DOC_THUMBNAIL,
+                type=Asset.DOC_THUMBNAIL,
                 file_ext=FileExt.PNG,
             ),
             "test/0__DOCUMENT_THUMBNAIL.png",
         ),
         (
             Path("test.mp4"),
-            Unit(seq=1, data=b"", type=UnitType.CHUNK, file_ext=FileExt.PNG),
-            "test/1__CHUNK.png",
+            Unit(seq=1, data=b"", type=Element.IMAGE, file_ext=FileExt.PNG),
+            "test/1__IMAGE_ELEMENT.png",
         ),
         (
             Path("test.mp4"),
             Unit(
                 seq=1,
                 data=b"",
-                type=UnitType.CHUNK_THUMBNAIL,
+                type=Asset.ELEM_THUMBNAIL,
                 file_ext=FileExt.PNG,
             ),
-            "test/1__CHUNK_THUMBNAIL.png",
+            "test/1__ELEMENT_THUMBNAIL.png",
         ),
         (
             Path("test.jpg"),
             Unit(
                 seq=0,
                 data=b"",
-                type=UnitType.DOC_THUMBNAIL,
+                type=Asset.DOC_THUMBNAIL,
                 file_ext=FileExt.PNG,
             ),
             "test/0__DOCUMENT_THUMBNAIL.png",
         ),
         (
             Path("test.jpg"),
-            Unit(seq=1, data=b"", type=UnitType.CHUNK, file_ext=FileExt.JPG),
-            "test/1__CHUNK.jpg",
+            Unit(seq=1, data=b"", type=Element.IMAGE, file_ext=FileExt.JPG),
+            "test/1__IMAGE_ELEMENT.jpg",
         ),
         (
             Path("test.jpg"),
             Unit(
                 seq=1,
                 data=b"",
-                type=UnitType.CHUNK_THUMBNAIL,
+                type=Asset.ELEM_THUMBNAIL,
                 file_ext=FileExt.PNG,
             ),
-            "test/1__CHUNK_THUMBNAIL.png",
+            "test/1__ELEMENT_THUMBNAIL.png",
         ),
         (
             Path("test.txt"),
             Unit(
                 seq=0,
                 data=b"",
-                type=UnitType.DOC_THUMBNAIL,
+                type=Asset.DOC_THUMBNAIL,
                 file_ext=FileExt.PNG,
             ),
             "test/0__DOCUMENT_THUMBNAIL.png",
         ),
         (
             Path("test.txt"),
-            Unit(seq=1, data=b"", type=UnitType.CHUNK, file_ext=FileExt.TXT),
-            "test/1__CHUNK.txt",
+            Unit(seq=1, data=b"", type=Element.TEXT, file_ext=FileExt.TXT),
+            "test/1__TEXT_ELEMENT.txt",
         ),
     ),
 )

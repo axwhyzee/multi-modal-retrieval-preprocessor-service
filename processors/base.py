@@ -7,7 +7,7 @@ from processors.common import Unit
 
 
 class AbstractProcessor(ABC):
-    """A processor generates units from a document,
+    """A processor extracts elements from a document,
     depending on the modal of the document, such as image,
     text, and even multi-modal documents like PDFs, which
     is a combination of img + text.
@@ -32,6 +32,10 @@ class AbstractProcessor(ABC):
         chunked further since an image is already the
         smallest representable unit. Hence, a chunk is
         the same image as the original doc, but downsized.
+
+    4) PDF documents
+        Text is extracted and chunked into text snippets.
+        Images and plots are also extracted.
 
     All concrete processors implement a `__call__()`
     method to provide a unified entrypoint to creating

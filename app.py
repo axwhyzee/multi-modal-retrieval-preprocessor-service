@@ -8,8 +8,9 @@ from event_core.adapters.services.meta import AbstractMetaMapping, Meta
 from event_core.adapters.services.storage import Payload, StorageClient
 from event_core.domain.events import DocStored
 from event_core.domain.types import (
+    Asset,
+    Element,
     FileExt,
-    UnitType,
     path_to_ext,
 )
 
@@ -61,14 +62,15 @@ def _handle_doc_callback(
             for unit in processor():
                 unit_key = _generate_key(doc_key, unit)
                 storage[unit_key] = Payload(data=unit.data, type=unit.type)
-                match unit.type:
-                    case UnitType.DOC_THUMBNAIL:
-                        meta[Meta.DOC_THUMB][doc_key] = unit_key
-                    case UnitType.CHUNK:
-                        meta[Meta.PARENT][unit_key] = doc_key
-                        chunks_by_seq[unit.seq] = unit_key
-                    case UnitType.CHUNK_THUMBNAIL:
-                        thumbs_by_seq[unit.seq] = unit_key
+                if unit.type == Asset.DOC_THUMBNAIL:
+                    meta[Meta.DOC_THUMB][doc_key] = unit_key
+                elif unit.type == Asset.ELEM_THUMBNAIL:
+                    thumbs_by_seq[unit.seq] = unit_key
+                elif isinstance(unit.type, Element):
+                    meta[Meta.PARENT][unit_key] = doc_key
+                    chunks_by_seq[unit.seq] = unit_key
+                else:
+                    logger.warning(f"Unrecognized unit type: {unit.type}")
         except Exception as e:
             logger.warning(f"Failed to process {doc_key}")
 
@@ -85,7 +87,7 @@ def _insert_default_thumbnails(
     for thumb_path in DEFAULT_THUMBNAILS.values():
         payload = Payload(
             data=resize_to_thumb(thumb_path.read_bytes()),
-            type=UnitType.DOC_THUMBNAIL,
+            type=Asset.DOC_THUMBNAIL,
         )
         storage[str(thumb_path)] = payload
 

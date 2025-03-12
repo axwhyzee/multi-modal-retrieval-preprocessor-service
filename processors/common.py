@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from io import BytesIO
 
-from event_core.domain.types import FileExt, UnitType
+from event_core.domain.types import FileExt, RepoObject
 from PIL import Image, ImageOps
 
 from config import (
@@ -19,7 +19,7 @@ class Unit:
 
     seq: int
     data: bytes
-    type: UnitType
+    type: RepoObject
     file_ext: FileExt
 
 

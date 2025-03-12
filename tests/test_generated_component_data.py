@@ -3,7 +3,7 @@ from io import BytesIO
 from pathlib import Path
 
 import pytest
-from event_core.domain.types import UnitType
+from event_core.domain.types import Asset, Element
 from PIL import Image
 
 from config import THUMB_HEIGHT, THUMB_WIDTH
@@ -17,13 +17,13 @@ def _to_alnum(s: str) -> str:
 @pytest.mark.parametrize(
     "fixture_processor", ("img_processor", "vid_processor")
 )
-def _test_img_and_video_docs_generate_doc_thumbnail(
+def test_img_and_video_docs_generate_doc_thumbnail(
     fixture_processor: str, request: pytest.FixtureRequest
 ) -> None:
     processor: AbstractProcessor = request.getfixturevalue(fixture_processor)
     doc_thumb_data = None
     for unit in processor():
-        if unit.type == UnitType.DOC_THUMBNAIL:
+        if unit.type == Asset.DOC_THUMBNAIL:
             doc_thumb_data = unit.data
             break
 
@@ -40,7 +40,7 @@ def test_text_doc_original_text_equals_chunks(
     text_chunks = [
         unit.data.decode("utf-8")
         for unit in txt_processor()
-        if unit.type == UnitType.CHUNK
+        if unit.type == Element.TEXT
     ]
     concat_text = "".join(text_chunks)
     assert _to_alnum(original) == _to_alnum(concat_text)

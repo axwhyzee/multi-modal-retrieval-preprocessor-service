@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Iterator
 
 import cv2
-from event_core.domain.types import FileExt, UnitType
+from event_core.domain.types import Asset, Element, FileExt
 from scenedetect import AdaptiveDetector, detect, video_splitter  # type: ignore
 
 from config import IMG_EXT
@@ -50,7 +50,7 @@ class VideoProcessor(AbstractProcessor):
         yield Unit(
             seq=0,
             data=self._get_thumb(),
-            type=UnitType.DOC_THUMBNAIL,
+            type=Asset.DOC_THUMBNAIL,
             file_ext=IMG_EXT,
         )
         yield from self._chunk()
@@ -73,21 +73,21 @@ class VideoProcessor(AbstractProcessor):
                     "`>> brew install ffmpeg` or\n"
                     "`>> brew install mkvtoolnix`"
                 )
-            video_paths = list(Path(temp_dir).iterdir())
+            video_paths = [str(path) for path in Path(temp_dir).iterdir()]
             if not video_paths:
                 video_paths.append(self._temp_file_path)
             for seq, video_path in enumerate(video_paths, start=1):
-                frame = _extract_first_frame(str(video_path), IMG_EXT)
+                frame = _extract_first_frame(video_path, IMG_EXT)
                 yield Unit(
                     seq=seq,
                     data=resize_to_chunk(frame),
-                    type=UnitType.CHUNK,
+                    type=Element.IMAGE,
                     file_ext=IMG_EXT,
                 )
                 yield Unit(
                     seq=seq,
                     data=resize_to_thumb(frame),
-                    type=UnitType.CHUNK_THUMBNAIL,
+                    type=Asset.ELEM_THUMBNAIL,
                     file_ext=IMG_EXT,
                 )
 

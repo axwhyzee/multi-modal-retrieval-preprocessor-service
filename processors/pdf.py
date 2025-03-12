@@ -1,9 +1,9 @@
 import tempfile
 from io import BytesIO
 from pathlib import Path
-from typing import Iterator
+from typing import Dict, Iterator
 
-from event_core.domain.types import FileExt, UnitType
+from event_core.domain.types import Asset, Element, FileExt
 from pdf2image import convert_from_bytes
 from unstructured.documents.elements import ElementType
 from unstructured.partition.pdf import partition_pdf
@@ -18,6 +18,13 @@ from processors.common import (
 )
 from processors.exceptions import EmptyPDF
 from processors.text import TextProcessor
+
+FILE_PREFIX_TO_ELEMENT: Dict[str, Element] = {
+    ElementType.FIGURE.lower(): Element.PLOT,
+    ElementType.TABLE.lower(): Element.PLOT,
+    ElementType.IMAGE.lower(): Element.IMAGE,
+    ElementType.PICTURE.lower(): Element.IMAGE,
+}
 
 
 def _get_pdf_thumbnail(data: bytes) -> bytes:
@@ -45,7 +52,7 @@ class PdfProcessor(AbstractProcessor):
         yield Unit(
             seq=0,
             data=doc_thumb,
-            type=UnitType.DOC_THUMBNAIL,
+            type=Asset.DOC_THUMBNAIL,
             file_ext=IMG_EXT,
         )
 
@@ -66,17 +73,18 @@ class PdfProcessor(AbstractProcessor):
 
             # images
             for img_path in Path(temp_dir).iterdir():
+                pre = str(img_path).split("-")[0]
                 img = img_path.read_bytes()
                 yield Unit(
                     seq=seq,
                     data=resize_to_chunk(img),
-                    type=UnitType.CHUNK,
+                    type=FILE_PREFIX_TO_ELEMENT[pre],
                     file_ext=IMG_EXT,
                 )
                 yield Unit(
                     seq=seq,
                     data=resize_to_thumb(img),
-                    type=UnitType.CHUNK_THUMBNAIL,
+                    type=Asset.ELEM_THUMBNAIL,
                     file_ext=IMG_EXT,
                 )
                 seq += 1
@@ -85,9 +93,5 @@ class PdfProcessor(AbstractProcessor):
         text = "\n".join([chunk.text for chunk in chunks])
         text_processor = TextProcessor(data=text.encode("utf-8"))
         for seq, unit in enumerate(text_processor(), start=seq):
-            yield Unit(
-                seq=seq,
-                data=unit.data,
-                type=UnitType.CHUNK,
-                file_ext=FileExt.TXT,
-            )
+            unit.seq = seq
+            yield unit

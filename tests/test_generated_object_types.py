@@ -1,7 +1,7 @@
 from collections import Counter
 
 import pytest
-from event_core.domain.types import FileExt, UnitType
+from event_core.domain.types import Asset, Element, FileExt
 
 from config import IMG_EXT
 from processors.base import AbstractProcessor
@@ -11,27 +11,27 @@ def test_text_doc_generates_only_chunks(
     txt_processor: AbstractProcessor,
 ) -> None:
     types = Counter([unit.type for unit in txt_processor()])
-    assert types[UnitType.CHUNK] >= 1
-    assert types[UnitType.CHUNK_THUMBNAIL] == 0
-    assert types[UnitType.DOC_THUMBNAIL] == 0
+    assert types[Element.TEXT] >= 1
+    assert types[Asset.ELEM_THUMBNAIL] == 0
+    assert types[Asset.DOC_THUMBNAIL] == 0
 
 
 def test_img_doc_generates_one_chunk_and_one_doc_thumbnail(
     img_processor: AbstractProcessor,
 ) -> None:
     types = Counter([unit.type for unit in img_processor()])
-    assert types[UnitType.CHUNK] == 1
-    assert types[UnitType.CHUNK_THUMBNAIL] == 1
-    assert types[UnitType.DOC_THUMBNAIL] == 1
+    assert types[Element.IMAGE] == 1
+    assert types[Asset.ELEM_THUMBNAIL] == 1
+    assert types[Asset.DOC_THUMBNAIL] == 1
 
 
 def test_vid_doc_generates_chunks_with_thumbnails(
     vid_processor: AbstractProcessor,
 ) -> None:
     types = Counter([unit.type for unit in vid_processor()])
-    assert types[UnitType.CHUNK] == types[UnitType.CHUNK_THUMBNAIL]
-    assert types[UnitType.CHUNK] >= 1
-    assert types[UnitType.DOC_THUMBNAIL] == 1
+    assert types[Element.IMAGE] == types[Asset.ELEM_THUMBNAIL]
+    assert types[Element.IMAGE] >= 1
+    assert types[Asset.DOC_THUMBNAIL] == 1
 
 
 @pytest.mark.parametrize(
@@ -49,10 +49,10 @@ def test_doc_generates_obj_with_correct_file_ext(
 ) -> None:
     processor: AbstractProcessor = request.getfixturevalue(fixture_processor)
     for unit in processor():
-        if unit.type == UnitType.CHUNK:
+        if isinstance(unit.type, Element):
             assert unit.file_ext == chunk_file_ext
         elif unit.type in (
-            UnitType.CHUNK_THUMBNAIL,
-            UnitType.DOC_THUMBNAIL,
+            Asset.ELEM_THUMBNAIL,
+            Asset.DOC_THUMBNAIL,
         ):
             assert unit.file_ext == IMG_EXT

@@ -4,7 +4,7 @@ from typing import cast
 from event_core.adapters.services.meta import FakeMetaMapping, Meta
 from event_core.adapters.services.storage import FakeStorageClient, Payload
 from event_core.domain.events import DocStored
-from event_core.domain.types import UnitType
+from event_core.domain.types import Asset
 
 from app import _handle_doc_callback
 from bootstrap import DIContainer
@@ -21,14 +21,14 @@ def test_handle_mp4_doc_stored(
     storage = cast(FakeStorageClient, container.storage())
     storage[doc_key] = Payload(
         data=vid_file_path.read_bytes(),
-        type=UnitType.DOC,
+        type=Asset.DOC,
     )  # storage should already have doc object
 
     _handle_doc_callback(doc_stored_event)
 
     obj_key_prefix = vid_file_path.parent / vid_file_path.stem
-    chunk_key = str(obj_key_prefix / f"1__CHUNK{IMG_EXT}")
-    chunk_thumb_key = str(obj_key_prefix / f"1__CHUNK_THUMBNAIL{IMG_EXT}")
+    chunk_key = str(obj_key_prefix / f"1__IMAGE_ELEMENT{IMG_EXT}")
+    chunk_thumb_key = str(obj_key_prefix / f"1__ELEMENT_THUMBNAIL{IMG_EXT}")
     doc_thumb_key = str(obj_key_prefix / f"0__DOCUMENT_THUMBNAIL{IMG_EXT}")
 
     assert Meta.DOC_THUMB in meta
@@ -53,13 +53,13 @@ def test_handle_txt_doc_stored(
     storage = cast(FakeStorageClient, container.storage())
     storage[doc_key] = Payload(
         data=txt_file_path.read_bytes(),
-        type=UnitType.DOC,
+        type=Asset.DOC,
     )  # storage should already have doc object
 
     _handle_doc_callback(doc_stored_event)
 
     obj_key_prefix = txt_file_path.parent / txt_file_path.stem
-    chunk_key = str(obj_key_prefix / "1__CHUNK.txt")
+    chunk_key = str(obj_key_prefix / "1__TEXT_ELEMENT.txt")
 
     assert Meta.PARENT in meta
     assert meta[Meta.PARENT][chunk_key] == doc_key
@@ -77,13 +77,13 @@ def test_handle_jpg_doc_stored(
     storage = cast(FakeStorageClient, container.storage())
     storage[doc_key] = Payload(
         data=img_file_path.read_bytes(),
-        type=UnitType.DOC,
+        type=Asset.DOC,
     )  # storage should already have doc object
 
     _handle_doc_callback(doc_stored_event)
 
     obj_key_prefix = img_file_path.parent / img_file_path.stem
-    chunk_key = str(obj_key_prefix / "1__CHUNK.jpg")
+    chunk_key = str(obj_key_prefix / "1__IMAGE_ELEMENT.jpg")
     doc_thumb_key = str(obj_key_prefix / f"0__DOCUMENT_THUMBNAIL{IMG_EXT}")
 
     assert Meta.DOC_THUMB in meta
