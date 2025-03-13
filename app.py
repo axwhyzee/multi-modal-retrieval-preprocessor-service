@@ -72,7 +72,7 @@ def _handle_doc_callback(
                 else:
                     logger.warning(f"Unrecognized unit type: {unit.type}")
         except Exception as e:
-            logger.warning(f"Failed to process {doc_key}")
+            logger.warning(f"Failed to process {doc_key}. Error: {e}")
 
     # map chunks to chunk thumbnails
     for thumb_seq, thumb_key in thumbs_by_seq.items():

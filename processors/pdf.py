@@ -73,7 +73,7 @@ class PdfProcessor(AbstractProcessor):
 
             # images
             for img_path in Path(temp_dir).iterdir():
-                pre = str(img_path).split("-")[0]
+                pre = img_path.stem.split("-")[0]
                 img = img_path.read_bytes()
                 yield Unit(
                     seq=seq,
