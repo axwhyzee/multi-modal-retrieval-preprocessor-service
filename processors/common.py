@@ -5,8 +5,6 @@ from event_core.domain.types import FileExt, RepoObject
 from PIL import Image, ImageOps
 
 from config import (
-    IMG_CHUNK_HEIGHT,
-    IMG_CHUNK_WIDTH,
     IMG_EXT,
     THUMB_HEIGHT,
     THUMB_WIDTH,
@@ -23,27 +21,19 @@ class Unit:
     file_ext: FileExt
 
 
-def _resize_img(data: bytes, width: int, height: int) -> bytes:
+def resize_to_thumb(data: bytes) -> bytes:
     image = Image.open(BytesIO(data))
     image = ImageOps.fit(
         image,
-        (width, height),
+        (THUMB_WIDTH, THUMB_HEIGHT),
         method=0,
         bleed=0.0,
         centering=(0.5, 0.5),
     )  # type: ignore
     image_fmt = ext_to_pil_fmt(IMG_EXT)
-    thumb = BytesIO()
-    image.save(thumb, format=image_fmt)
-    return thumb.getvalue()
-
-
-def resize_to_chunk(data: bytes) -> bytes:
-    return _resize_img(data, IMG_CHUNK_WIDTH, IMG_CHUNK_HEIGHT)
-
-
-def resize_to_thumb(data: bytes) -> bytes:
-    return _resize_img(data, THUMB_WIDTH, THUMB_HEIGHT)
+    image_bytes = BytesIO()
+    image.save(image_bytes, format=image_fmt)
+    return image_bytes.getvalue()
 
 
 def ext_to_pil_fmt(file_ext: FileExt) -> str:

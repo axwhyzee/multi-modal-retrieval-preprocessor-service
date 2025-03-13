@@ -4,7 +4,7 @@ from event_core.domain.types import Asset, Element
 
 from config import IMG_EXT
 from processors.base import AbstractProcessor
-from processors.common import Unit, resize_to_chunk, resize_to_thumb
+from processors.common import Unit, resize_to_thumb
 
 
 class ImageProcessor(AbstractProcessor):
@@ -18,7 +18,7 @@ class ImageProcessor(AbstractProcessor):
         )
         yield Unit(
             seq=1,
-            data=resize_to_chunk(self._data),
+            data=self._data,
             type=Element.IMAGE,
             file_ext=self._file_ext,
         )

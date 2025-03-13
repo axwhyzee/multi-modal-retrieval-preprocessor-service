@@ -13,7 +13,6 @@ from processors.common import (
     IMG_EXT,
     Unit,
     ext_to_pil_fmt,
-    resize_to_chunk,
     resize_to_thumb,
 )
 from processors.exceptions import EmptyPDF
@@ -77,7 +76,7 @@ class PdfProcessor(AbstractProcessor):
                 img = img_path.read_bytes()
                 yield Unit(
                     seq=seq,
-                    data=resize_to_chunk(img),
+                    data=img,
                     type=FILE_PREFIX_TO_ELEMENT[pre],
                     file_ext=IMG_EXT,
                 )

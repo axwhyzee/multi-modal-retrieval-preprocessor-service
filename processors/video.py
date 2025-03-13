@@ -8,7 +8,7 @@ from scenedetect import AdaptiveDetector, detect, video_splitter  # type: ignore
 
 from config import IMG_EXT
 from processors.base import AbstractProcessor
-from processors.common import Unit, resize_to_chunk, resize_to_thumb
+from processors.common import Unit, resize_to_thumb
 from processors.exceptions import (
     FrameReadError,
     UnableToOpenVideo,
@@ -80,7 +80,7 @@ class VideoProcessor(AbstractProcessor):
                 frame = _extract_first_frame(video_path, IMG_EXT)
                 yield Unit(
                     seq=seq,
-                    data=resize_to_chunk(frame),
+                    data=frame,
                     type=Element.IMAGE,
                     file_ext=IMG_EXT,
                 )
