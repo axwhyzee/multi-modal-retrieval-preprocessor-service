@@ -87,9 +87,9 @@ class PdfProcessor(AbstractProcessor):
                     file_ext=ext,
                     meta={
                         Meta.PAGE: meta.page_number,
-                        Meta.COORDS: cast(
+                        Meta.COORDS: str(cast(
                             CoordinatesMetadata, meta.coordinates
-                        ).points,
+                        ).points),
                     },
                 )
                 yield Unit(
@@ -109,9 +109,9 @@ class PdfProcessor(AbstractProcessor):
                 unit.seq = seq
                 unit.meta = {
                     Meta.PAGE: chunk.metadata.page_number,
-                    Meta.COORDS: cast(
+                    Meta.COORDS: str(cast(
                         CoordinatesMetadata, chunk.metadata.coordinates
-                    ).points,
+                    ).points),
                 }
                 seq += 1
                 yield unit
