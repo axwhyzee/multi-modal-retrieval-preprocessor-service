@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Optional
+from typing import Any, Dict, Optional
 
+from event_core.adapters.services.meta import Meta
 from event_core.domain.types import FileExt, RepoObject
 from PIL import Image, ImageOps
 
@@ -20,7 +21,7 @@ class Unit:
     data: bytes
     type: RepoObject
     file_ext: FileExt
-    meta: Optional[dict] = None
+    meta: Optional[Dict[Meta, Any]] = None
 
 
 def resize_to_thumb(data: bytes) -> bytes:

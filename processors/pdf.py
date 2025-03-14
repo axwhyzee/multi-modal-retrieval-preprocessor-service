@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 from typing import Iterator, cast
 
+from event_core.adapters.services.meta import Meta
 from event_core.domain.types import Asset, Element, FileExt
 from pdf2image import convert_from_bytes
 from unstructured.documents.elements import CoordinatesMetadata, ElementType
@@ -85,8 +86,8 @@ class PdfProcessor(AbstractProcessor):
                     type=elem_type,
                     file_ext=ext,
                     meta={
-                        "page": meta.page_number,
-                        "coords": cast(
+                        Meta.PAGE: meta.page_number,
+                        Meta.COORDS: cast(
                             CoordinatesMetadata, meta.coordinates
                         ).points,
                     },
@@ -107,8 +108,8 @@ class PdfProcessor(AbstractProcessor):
             for unit in text_processor():
                 unit.seq = seq
                 unit.meta = {
-                    "page": chunk.metadata.page_number,
-                    "coords": cast(
+                    Meta.PAGE: chunk.metadata.page_number,
+                    Meta.COORDS: cast(
                         CoordinatesMetadata, chunk.metadata.coordinates
                     ).points,
                 }

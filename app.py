@@ -71,6 +71,11 @@ def _handle_doc_callback(
                     chunks_by_seq[unit.seq] = unit_key
                 else:
                     logger.warning(f"Unrecognized unit type: {unit.type}")
+
+                # add meta
+                for meta_key, meta_val in unit.meta:
+                    meta[meta_key][unit_key] = meta_val
+
         except Exception as e:
             logger.warning(f"Failed to process {doc_key}. Error: {e}")
 
