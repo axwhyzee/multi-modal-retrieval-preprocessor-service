@@ -57,6 +57,7 @@ class VideoProcessor(AbstractProcessor):
 
     def _chunk(self) -> Iterator[Unit]:
         scene_list = detect(self._temp_file_path, AdaptiveDetector())
+        print(scene_list)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             if video_splitter.is_ffmpeg_available():
@@ -77,12 +78,16 @@ class VideoProcessor(AbstractProcessor):
             if not video_paths:
                 video_paths.append(self._temp_file_path)
             for seq, video_path in enumerate(video_paths, start=1):
+                scene_i = int(
+                    video_path.rsplit("-", 1)[1].split(".")[0]
+                )  # E.g., tmpazhewchn-Scene-001.mp4
                 frame = _extract_first_frame(video_path, IMG_EXT)
                 yield Unit(
                     seq=seq,
                     data=frame,
                     type=Element.IMAGE,
                     file_ext=IMG_EXT,
+                    meta={"seconds": scene_list[scene_i][0].get_seconds()},
                 )
                 yield Unit(
                     seq=seq,

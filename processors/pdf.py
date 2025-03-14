@@ -1,7 +1,6 @@
-import tempfile
+import base64
 from io import BytesIO
-from pathlib import Path
-from typing import Dict, Iterator
+from typing import Iterator, cast
 
 from event_core.domain.types import Asset, Element, FileExt
 from pdf2image import convert_from_bytes
@@ -18,12 +17,20 @@ from processors.common import (
 from processors.exceptions import EmptyPDF
 from processors.text import TextProcessor
 
-FILE_PREFIX_TO_ELEMENT: Dict[str, Element] = {
-    ElementType.FIGURE.lower(): Element.PLOT,
-    ElementType.TABLE.lower(): Element.PLOT,
-    ElementType.IMAGE.lower(): Element.IMAGE,
-    ElementType.PICTURE.lower(): Element.IMAGE,
+IMAGE_TYPES = {
+    ElementType.IMAGE: Element.IMAGE,
+    ElementType.TABLE: Element.PLOT,
+    ElementType.FIGURE: Element.PLOT,
+    ElementType.PICTURE: Element.IMAGE,
 }
+
+MIME_TYPE_TO_EXT = {
+    "image/jpeg": FileExt.JPEG,
+    "image/jpg": FileExt.JPG,
+    "image/png": FileExt.PNG,
+}
+
+MIN_TEXT_CHUNKSIZE = 16
 
 
 def _get_pdf_thumbnail(data: bytes) -> bytes:
@@ -55,30 +62,32 @@ class PdfProcessor(AbstractProcessor):
             file_ext=IMG_EXT,
         )
 
+        # extract elements
         seq = 1
-        with tempfile.TemporaryDirectory() as temp_dir:
-            chunks = partition_pdf(
-                file=BytesIO(self._data),
-                infer_table_structure=True,
-                strategy="hi_res",
-                extract_image_block_types=[
-                    ElementType.IMAGE,
-                    ElementType.TABLE,
-                    ElementType.FIGURE,
-                    ElementType.PICTURE,
-                ],
-                extract_image_block_output_dir=temp_dir,
-            )
+        chunks = partition_pdf(
+            file=BytesIO(self._data),
+            infer_table_structure=True,
+            strategy="hi_res",
+            extract_image_block_types=list(IMAGE_TYPES.keys()),
+            extract_image_block_to_payload=True,
+        )
 
-            # images
-            for img_path in Path(temp_dir).iterdir():
-                pre = img_path.stem.split("-")[0]
-                img = img_path.read_bytes()
+        for chunk in chunks:
+            # image and plot elements
+            if elem_type := IMAGE_TYPES.get(chunk.category):
+                meta = chunk.metadata
+                ext = MIME_TYPE_TO_EXT[cast(str, meta.image_mime_type)]
+                img = base64.b64decode(cast(str, meta.image_base64))
+
                 yield Unit(
                     seq=seq,
                     data=img,
-                    type=FILE_PREFIX_TO_ELEMENT[pre],
-                    file_ext=IMG_EXT,
+                    type=elem_type,
+                    file_ext=ext,
+                    meta={
+                        "page": meta.page_number,
+                        "coords": meta.coordinates.points,
+                    },
                 )
                 yield Unit(
                     seq=seq,
@@ -88,9 +97,16 @@ class PdfProcessor(AbstractProcessor):
                 )
                 seq += 1
 
-        # text chunks
-        text = "\n".join([chunk.text for chunk in chunks])
-        text_processor = TextProcessor(data=text.encode("utf-8"))
-        for seq, unit in enumerate(text_processor(), start=seq):
-            unit.seq = seq
-            yield unit
+            # text elements
+            if len(chunk.text) < MIN_TEXT_CHUNKSIZE:
+                continue
+
+            text_processor = TextProcessor(data=chunk.text.encode("utf-8"))
+            for unit in text_processor():
+                unit.seq = seq
+                unit.meta = {
+                    "page": chunk.metadata.page_number,
+                    "coords": chunk.metadata.coordinates.points,
+                }
+                seq += 1
+                yield unit

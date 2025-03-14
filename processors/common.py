@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from io import BytesIO
+from typing import Optional
 
 from event_core.domain.types import FileExt, RepoObject
 from PIL import Image, ImageOps
@@ -19,6 +20,7 @@ class Unit:
     data: bytes
     type: RepoObject
     file_ext: FileExt
+    meta: Optional[dict] = None
 
 
 def resize_to_thumb(data: bytes) -> bytes:
