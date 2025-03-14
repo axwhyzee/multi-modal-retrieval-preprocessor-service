@@ -11,6 +11,7 @@ from processors.video import VideoProcessor
 
 PROCESSORS_BY_EXT: Dict[FileExt, Callable[..., AbstractProcessor]] = {
     FileExt.TXT: partial(TextProcessor, file_ext=FileExt.TXT),
+    FileExt.MD: partial(TextProcessor, file_ext=FileExt.TXT),
     FileExt.JPEG: partial(ImageProcessor, file_ext=FileExt.JPEG),
     FileExt.JPG: partial(ImageProcessor, file_ext=FileExt.JPG),
     FileExt.PNG: partial(ImageProcessor, file_ext=FileExt.PNG),
