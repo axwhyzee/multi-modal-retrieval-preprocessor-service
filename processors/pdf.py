@@ -4,7 +4,7 @@ from typing import Iterator, cast
 
 from event_core.domain.types import Asset, Element, FileExt
 from pdf2image import convert_from_bytes
-from unstructured.documents.elements import ElementType
+from unstructured.documents.elements import CoordinatesMetadata, ElementType
 from unstructured.partition.pdf import partition_pdf
 
 from processors.base import AbstractProcessor
@@ -86,7 +86,9 @@ class PdfProcessor(AbstractProcessor):
                     file_ext=ext,
                     meta={
                         "page": meta.page_number,
-                        "coords": meta.coordinates.points,
+                        "coords": cast(
+                            CoordinatesMetadata, meta.coordinates
+                        ).points,
                     },
                 )
                 yield Unit(
@@ -106,7 +108,9 @@ class PdfProcessor(AbstractProcessor):
                 unit.seq = seq
                 unit.meta = {
                     "page": chunk.metadata.page_number,
-                    "coords": chunk.metadata.coordinates.points,
+                    "coords": cast(
+                        CoordinatesMetadata, chunk.metadata.coordinates
+                    ).points,
                 }
                 seq += 1
                 yield unit

@@ -80,7 +80,7 @@ class VideoProcessor(AbstractProcessor):
             for seq, video_path in enumerate(video_paths, start=1):
                 scene_i = int(
                     video_path.rsplit("-", 1)[1].split(".")[0]
-                )  # E.g., tmpazhewchn-Scene-001.mp4
+                ) - 1  # E.g., tmpazhewchn-Scene-001.mp4
                 frame = _extract_first_frame(video_path, IMG_EXT)
                 yield Unit(
                     seq=seq,
