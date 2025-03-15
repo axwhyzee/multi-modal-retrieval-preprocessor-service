@@ -23,7 +23,7 @@ from processors.common import Unit
         (
             Path("test.mp4"),
             Unit(seq=1, data=b"", type=Element.IMAGE, file_ext=FileExt.PNG),
-            "test/1__IMAGE_ELEMENT.png",
+            "test/1__IMAGE.png",
         ),
         (
             Path("test.mp4"),
@@ -48,7 +48,7 @@ from processors.common import Unit
         (
             Path("test.jpg"),
             Unit(seq=1, data=b"", type=Element.IMAGE, file_ext=FileExt.JPG),
-            "test/1__IMAGE_ELEMENT.jpg",
+            "test/1__IMAGE.jpg",
         ),
         (
             Path("test.jpg"),
@@ -73,7 +73,7 @@ from processors.common import Unit
         (
             Path("test.txt"),
             Unit(seq=1, data=b"", type=Element.TEXT, file_ext=FileExt.TXT),
-            "test/1__TEXT_ELEMENT.txt",
+            "test/1__TEXT.txt",
         ),
     ),
 )

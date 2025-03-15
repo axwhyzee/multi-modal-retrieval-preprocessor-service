@@ -27,7 +27,7 @@ def test_handle_mp4_doc_stored(
     _handle_doc_callback(doc_stored_event)
 
     obj_key_prefix = vid_file_path.parent / vid_file_path.stem
-    chunk_key = str(obj_key_prefix / f"1__IMAGE_ELEMENT{IMG_EXT}")
+    chunk_key = str(obj_key_prefix / f"1__IMAGE{IMG_EXT}")
     chunk_thumb_key = str(obj_key_prefix / f"1__ELEMENT_THUMBNAIL{IMG_EXT}")
     doc_thumb_key = str(obj_key_prefix / f"0__DOCUMENT_THUMBNAIL{IMG_EXT}")
 
@@ -59,7 +59,7 @@ def test_handle_txt_doc_stored(
     _handle_doc_callback(doc_stored_event)
 
     obj_key_prefix = txt_file_path.parent / txt_file_path.stem
-    chunk_key = str(obj_key_prefix / "1__TEXT_ELEMENT.txt")
+    chunk_key = str(obj_key_prefix / "1__TEXT.txt")
 
     assert Meta.PARENT in meta
     assert meta[Meta.PARENT][chunk_key] == doc_key
@@ -83,7 +83,7 @@ def test_handle_jpg_doc_stored(
     _handle_doc_callback(doc_stored_event)
 
     obj_key_prefix = img_file_path.parent / img_file_path.stem
-    chunk_key = str(obj_key_prefix / "1__IMAGE_ELEMENT.jpg")
+    chunk_key = str(obj_key_prefix / "1__IMAGE.jpg")
     doc_thumb_key = str(obj_key_prefix / f"0__DOCUMENT_THUMBNAIL{IMG_EXT}")
 
     assert Meta.DOC_THUMB in meta
