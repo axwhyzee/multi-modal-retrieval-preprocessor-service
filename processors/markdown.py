@@ -4,6 +4,7 @@ from event_core.domain.types import Element, FileExt
 
 from processors.base import AbstractProcessor
 from processors.code import CodeProcessor
+from processors.text import TextProcessor
 from processors.common import Unit
 
 
@@ -17,12 +18,19 @@ class MarkdownProcessor(AbstractProcessor):
         blocks = self._data.decode("utf-8").split("```")
         seq = 0
         for i, block in enumerate(blocks):
-            if not block.strip():
+            block = block.strip().encode("utf-8")
+            if not block:
                 continue
-            type_ = Element.CODE if i % 2 else Element.TEXT
-            for unit in CodeProcessor(
-                block.encode("utf-8"), FileExt.PY
-            )():  # any file ext will do
-                unit.seq = (seq := seq + 1)
-                unit.type = type_
-                yield unit
+
+            if i % 2:
+                # code block
+                for unit in CodeProcessor(block, FileExt.PY)():  # any file ext will do
+                    unit.seq = (seq := seq + 1)
+                    unit.type = Element.CODE
+                    yield unit
+            else:
+                # text block
+                for unit in TextProcessor(block)():
+                    unit.seq = (seq := seq + 1)
+                    unit.type = Element.TEXT
+                    yield unit
