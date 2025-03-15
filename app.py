@@ -15,7 +15,7 @@ from event_core.domain.types import (
 )
 
 from bootstrap import DIContainer, bootstrap
-from processors import PROCESSORS_BY_EXT
+from processors import extract_elems_and_assets
 from processors.common import Unit, resize_to_thumb
 
 logger = logging.getLogger(__name__)
@@ -59,28 +59,28 @@ def _handle_doc_callback(
     if default_thumb_key := (DEFAULT_THUMBNAILS.get(doc_ext)):
         meta[Meta.DOC_THUMB][doc_key] = str(default_thumb_key)
 
-    with PROCESSORS_BY_EXT[doc_ext](doc_data) as processor:
-        try:
-            for unit in processor():
-                unit_key = _generate_key(doc_key, unit)
-                storage[unit_key] = Payload(data=unit.data, type=unit.type)
-                if unit.type == Asset.DOC_THUMBNAIL:
-                    meta[Meta.DOC_THUMB][doc_key] = unit_key
-                elif unit.type == Asset.ELEM_THUMBNAIL:
-                    thumbs_by_seq[unit.seq] = unit_key
-                elif isinstance(unit.type, Element):
-                    meta[Meta.PARENT][unit_key] = doc_key
-                    chunks_by_seq[unit.seq] = unit_key
-                else:
-                    logger.warning(f"Unrecognized unit type: {unit.type}")
+    try:
+        for unit in extract_elems_and_assets(doc_data, doc_ext):
+            unit_key = _generate_key(doc_key, unit)
+            storage[unit_key] = Payload(data=unit.data, type=unit.type)
 
-                # add meta
-                if unit.meta:
-                    for meta_key, meta_val in unit.meta.items():
-                        meta[meta_key][unit_key] = meta_val
+            if unit.type == Asset.DOC_THUMBNAIL:
+                meta[Meta.DOC_THUMB][doc_key] = unit_key
+            elif unit.type == Asset.ELEM_THUMBNAIL:
+                thumbs_by_seq[unit.seq] = unit_key
+            elif isinstance(unit.type, Element):
+                meta[Meta.PARENT][unit_key] = doc_key
+                chunks_by_seq[unit.seq] = unit_key
+            else:
+                logger.warning(f"Unrecognized unit type: {unit.type}")
 
-        except Exception as e:
-            logger.warning(f"Failed to process {doc_key}. Error: {e}")
+            # add meta
+            if unit.meta:
+                for meta_key, meta_val in unit.meta.items():
+                    meta[meta_key][unit_key] = meta_val
+
+    except Exception as e:
+        logger.warning(f"Failed to process {doc_key}. Error: {e}")
 
     # map chunks to chunk thumbnails
     for thumb_seq, thumb_key in thumbs_by_seq.items():
