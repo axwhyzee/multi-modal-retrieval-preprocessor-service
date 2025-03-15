@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_THUMBNAILS: Dict[FileExt, Path] = {
     FileExt.TXT: Path("assets/icons/txt.png"),
     FileExt.MD: Path("assets/icons/md.png"),
-    FileExt.PY: Path("assets/icons/py.jpeg"),
+    FileExt.PY: Path("assets/icons/py.png"),
 }
 
 
