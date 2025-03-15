@@ -56,10 +56,29 @@ class VideoProcessor(AbstractProcessor):
         )
         yield from self._chunk()
 
+    def _process_scene(
+        self, seq: int, seconds: float, video_path: str
+    ) -> Iterator[Unit]:
+        frame = _extract_first_frame(video_path, IMG_EXT)
+        yield Unit(
+            seq=seq,
+            data=frame,
+            type=Element.IMAGE,
+            file_ext=IMG_EXT,
+            meta={Meta.FRAME_SECONDS: seconds},
+        )
+        yield Unit(
+            seq=seq,
+            data=resize_to_thumb(frame),
+            type=Asset.ELEM_THUMBNAIL,
+            file_ext=IMG_EXT,
+        )
+
     def _chunk(self) -> Iterator[Unit]:
         scene_list = detect(self._temp_file_path, AdaptiveDetector())
 
         with tempfile.TemporaryDirectory() as temp_dir:
+            # split video into scenes
             if video_splitter.is_ffmpeg_available():
                 video_splitter.split_video_ffmpeg(
                     self._temp_file_path, scene_list, output_dir=temp_dir
@@ -74,31 +93,19 @@ class VideoProcessor(AbstractProcessor):
                     "`>> brew install ffmpeg` or\n"
                     "`>> brew install mkvtoolnix`"
                 )
-            video_paths = [str(path) for path in Path(temp_dir).iterdir()]
-            if not video_paths:
-                video_paths.append(self._temp_file_path)
-            for seq, video_path in enumerate(video_paths, start=1):
-                scene_i = (
-                    int(video_path.rsplit("-", 1)[1].split(".")[0]) - 1
-                )  # E.g., tmpazhewchn-Scene-001.mp4
-                frame = _extract_first_frame(video_path, IMG_EXT)
-                yield Unit(
-                    seq=seq,
-                    data=frame,
-                    type=Element.IMAGE,
-                    file_ext=IMG_EXT,
-                    meta={
-                        Meta.FRAME_SECONDS: scene_list[scene_i][
-                            0
-                        ].get_seconds()
-                    },
-                )
-                yield Unit(
-                    seq=seq,
-                    data=resize_to_thumb(frame),
-                    type=Asset.ELEM_THUMBNAIL,
-                    file_ext=IMG_EXT,
-                )
+
+            # process scenes
+            if video_paths := list(Path(temp_dir).iterdir()):
+                for seq, video_path in enumerate(video_paths, start=1):
+                    # E.g., tmpazhewchn-Scene-001.mp4
+                    scene_idx = int(video_path.stem.rsplit("-", 1)[1]) - 1
+                    scene_seconds = scene_list[scene_idx][0].get_seconds()
+                    yield from self._process_scene(
+                        seq, scene_seconds, str(video_path)
+                    )
+            else:
+                # single scene video
+                yield from self._process_scene(1, 0, self._temp_file_path)
 
     def _get_thumb(self) -> bytes:
         frame = _extract_first_frame(self._temp_file_path)
